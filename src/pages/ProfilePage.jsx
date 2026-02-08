@@ -163,7 +163,8 @@ const ProfilePage = () => {
       setCouple(null);
       setSuccess('Partner removed');
     } catch (err) {
-      setError(err.message);
+      const errorMessage = err.response?.data?.message || err.response?.data || err.message || 'Failed to remove partner';
+      setError(typeof errorMessage === 'object' ? JSON.stringify(errorMessage) : errorMessage);
     }
   };
 
