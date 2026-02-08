@@ -1,0 +1,253 @@
+/* Import Google Font - must be first */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@import "tailwindcss";
+
+/* ============================================
+   Valentine's Design System
+   Subtle, refined romantic aesthetic
+   ============================================ */
+
+/* CSS Custom Properties for the design system */
+:root {
+  /* Color Palette - Soft Valentine's */
+  --color-cream: #FFF8F6;
+  --color-cream-dark: #FFF0ED;
+  --color-blush: #FFEAE6;
+  --color-rose-light: #F5D0CC;
+  --color-rose: #E8B4B4;
+  --color-rose-medium: #D4A5A5;
+  --color-dusty: #C49393;
+  --color-deep: #B76E79;
+  --color-accent: #A85A67;
+  --color-dark: #8B4A5A;
+  --color-darker: #6B3A4A;
+
+  /* Neutral tones */
+  --color-warm-gray: #9B8A8A;
+  --color-text: #4A3A3F;
+  --color-text-light: #7A6A6F;
+  --color-text-muted: #A89A9F;
+
+  /* Functional colors */
+  --color-success: #7DB9A6;
+  --color-warning: #E5C07B;
+  --color-error: #D47B7B;
+}
+
+/* Base styles */
+html {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--color-cream);
+  color: var(--color-text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* Custom utility classes using @layer */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .bg-cream {
+    background-color: var(--color-cream);
+  }
+
+  .bg-cream-dark {
+    background-color: var(--color-cream-dark);
+  }
+
+  .bg-blush {
+    background-color: var(--color-blush);
+  }
+
+  .bg-rose-light {
+    background-color: var(--color-rose-light);
+  }
+
+  .bg-rose {
+    background-color: var(--color-rose);
+  }
+
+  .bg-dusty {
+    background-color: var(--color-dusty);
+  }
+
+  .bg-deep {
+    background-color: var(--color-deep);
+  }
+
+  .bg-accent {
+    background-color: var(--color-accent);
+  }
+
+  .bg-dark {
+    background-color: var(--color-dark);
+  }
+
+  .bg-success {
+    background-color: var(--color-success);
+  }
+
+  .bg-warning {
+    background-color: var(--color-warning);
+  }
+
+  .bg-error {
+    background-color: var(--color-error);
+  }
+
+  .text-cream {
+    color: var(--color-cream);
+  }
+
+  .text-deep {
+    color: var(--color-deep);
+  }
+
+  .text-accent {
+    color: var(--color-accent);
+  }
+
+  .text-dark {
+    color: var(--color-dark);
+  }
+
+  .text-text {
+    color: var(--color-text);
+  }
+
+  .text-text-light {
+    color: var(--color-text-light);
+  }
+
+  .text-text-muted {
+    color: var(--color-text-muted);
+  }
+
+  .text-success {
+    color: var(--color-success);
+  }
+
+  .text-warning {
+    color: var(--color-warning);
+  }
+
+  .text-error {
+    color: var(--color-error);
+  }
+
+  .border-rose {
+    border-color: var(--color-rose);
+  }
+
+  .border-rose-light {
+    border-color: var(--color-rose-light);
+  }
+
+  .border-dusty {
+    border-color: var(--color-dusty);
+  }
+
+  .border-deep {
+    border-color: var(--color-deep);
+  }
+
+  .border-error {
+    border-color: var(--color-error);
+  }
+
+  .from-deep {
+    --tw-gradient-from: var(--color-deep);
+  }
+
+  .to-accent {
+    --tw-gradient-to: var(--color-accent);
+  }
+
+  .from-accent {
+    --tw-gradient-from: var(--color-accent);
+  }
+
+  .to-deep {
+    --tw-gradient-to: var(--color-deep);
+  }
+
+  .gradient-subtle {
+    background: linear-gradient(135deg, var(--color-cream) 0%, var(--color-blush) 100%);
+  }
+
+  .gradient-card {
+    background: linear-gradient(180deg, #FFFFFF 0%, var(--color-cream) 100%);
+  }
+
+  .gradient-accent {
+    background: linear-gradient(135deg, var(--color-deep) 0%, var(--color-accent) 100%);
+  }
+
+  .shadow-subtle {
+    box-shadow: 0 1px 3px rgba(180, 120, 120, 0.06);
+  }
+
+  .shadow-soft {
+    box-shadow: 0 4px 12px rgba(180, 120, 120, 0.08);
+  }
+
+  .shadow-medium {
+    box-shadow: 0 8px 24px rgba(180, 120, 120, 0.12);
+  }
+
+  .shadow-lifted {
+    box-shadow: 0 12px 32px rgba(180, 120, 120, 0.15);
+  }
+
+  .ring-valentine {
+    box-shadow: 0 0 0 3px rgba(183, 110, 121, 0.15);
+  }
+
+  .rounded-valentine {
+    border-radius: 14px;
+  }
+
+  .rounded-valentine-sm {
+    border-radius: 10px;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-cream-dark);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-rose);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-dusty);
+}
+
+/* Selection styling */
+::selection {
+  background-color: var(--color-rose-light);
+  color: var(--color-dark);
+}
+
+/* Focus visible styles */
+:focus-visible {
+  outline: 2px solid var(--color-deep);
+  outline-offset: 2px;
+}
