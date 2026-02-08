@@ -375,9 +375,19 @@ const ProfilePage = () => {
                   </div>
                   
                   {partner.isPending ? (
-                    <p className="text-sm text-text-light bg-blush rounded-lg p-3">
-                      💌 An invitation has been sent! Once they sign up, you'll be connected.
-                    </p>
+                    <div className="space-y-3">
+                      <p className="text-sm text-text-light bg-blush rounded-lg p-3">
+                        💌 An invitation has been sent! Once they sign up, you'll be connected.
+                      </p>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleRemovePartner} 
+                        className="text-error hover:bg-error/10 hover:text-error"
+                      >
+                        Cancel Invitation
+                      </Button>
+                    </div>
                   ) : (
                     <>
                       {isEditingPartner ? (
