@@ -27,6 +27,43 @@ const VideoCall = ({ roomId, userId }) => {
   const [connectionStatus, setConnectionStatus] = useState('Initializing...');
   const socketRef = useRef(null);
 
+  // Debug Logs State
+  const [logs, setLogs] = useState([]);
+  const addLog = (msg) => {
+      console.log(msg);
+      setLogs(prev => [...prev.slice(-4), msg]); // Keep last 5 logs
+  };
+
+  // Use addLog in other functions too
+  const createPeerConnection = React.useCallback((targetUserId) => {
+      addLog(`Creating PC for ${targetUserId}`);
+      const pc = new RTCPeerConnection({
+          iceServers: [
+              { urls: 'stun:stun.l.google.com:19302' },
+              { urls: 'stun:stun1.l.google.com:19302' }
+          ]
+      });
+
+      pc.onicecandidate = (event) => {
+        if (event.candidate && socketRef.current) {
+          socketRef.current.emit('ice-candidate', { candidate: event.candidate, targetUserId });
+        }
+      };
+
+      pc.ontrack = (event) => {
+        addLog("Track received");
+        setRemoteStream(event.streams[0]);
+        setConnectionStatus('Video Connected');
+      };
+      
+      if (localStreamRef.current) {
+          localStreamRef.current.getTracks().forEach(track => pc.addTrack(track, localStreamRef.current));
+      }
+
+      peerConnection.current = pc;
+      return pc;
+  }, []);
+
   useEffect(() => {
     // 1. Initialize Socket
     let socket = socketService.socket;
@@ -37,14 +74,14 @@ const VideoCall = ({ roomId, userId }) => {
 
     // 2. Setup Event Listeners
     const onConnect = () => {
-        console.log("Socket connected:", socket.id);
+        addLog(`Socket connected: ${socket.id}`);
         setConnectionStatus('Connected to Server');
         socket.emit('join-room', { roomId, userId });
     };
 
     const onConnectError = (err) => {
-        console.error("Socket connection error:", err);
-        setConnectionStatus('Connection Error: ' + err.message);
+        addLog(`Socket Error: ${err.message}`);
+        setConnectionStatus('Error: ' + err.message);
     };
 
     if (socket.connected) {
@@ -56,7 +93,7 @@ const VideoCall = ({ roomId, userId }) => {
 
     // Handle incoming offer
     socket.on('offer', async ({ offer, senderId }) => {
-      console.log("Received offer from", senderId);
+      addLog(`Received offer from ${senderId}`);
       setConnectionStatus('Receiving Call...');
       const pc = createPeerConnection(senderId);
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
@@ -64,16 +101,16 @@ const VideoCall = ({ roomId, userId }) => {
       await pc.setLocalDescription(answer);
       socket.emit('answer', { answer, targetUserId: senderId });
       setIsCallActive(true);
-      setConnectionStatus('Connected with Partner');
+      setConnectionStatus('Connected');
     });
 
     // Handle incoming answer
     socket.on('answer', async ({ answer }) => {
-      console.log("Received answer");
+      addLog("Received answer");
       if (peerConnection.current) {
           await peerConnection.current.setRemoteDescription(new RTCSessionDescription(answer));
           setIsCallActive(true);
-          setConnectionStatus('Connected with Partner');
+          setConnectionStatus('Connected');
       }
     });
 
@@ -83,19 +120,19 @@ const VideoCall = ({ roomId, userId }) => {
           try {
               await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
           } catch (e) {
-              console.error("Error adding received ice candidate", e);
+              console.error("Error adding ice candidate", e);
           }
       }
     });
 
     socket.on('user-connected', (userId) => {
-        console.log('User connected:', userId);
-        setConnectionStatus('Partner Joined. Calling...');
+        addLog(`User connected: ${userId}`);
+        setConnectionStatus('Partner Joined');
         initiateOneToOneCall(userId);
     });
 
     socket.on('user-disconnected', (disconnectedUserId) => {
-        console.log('User disconnected:', disconnectedUserId);
+        addLog(`User disconnected: ${disconnectedUserId}`);
         if (disconnectedUserId !== userId) {
              setConnectionStatus('Partner Disconnected');
              endCall();
@@ -111,53 +148,35 @@ const VideoCall = ({ roomId, userId }) => {
       socket.off('user-connected');
       socket.off('user-disconnected');
     };
-  }, [roomId, userId]);
-
-  const createPeerConnection = (targetUserId) => {
-      console.log("Creating peer connection for", targetUserId);
-      const pc = new RTCPeerConnection({
-          iceServers: [
-              { urls: 'stun:stun.l.google.com:19302' },
-              { urls: 'stun:stun1.l.google.com:19302' },
-              { urls: 'stun:stun2.l.google.com:19302' }
-          ]
-      });
-
-      pc.onicecandidate = (event) => {
-        if (event.candidate && socketRef.current) {
-          socketRef.current.emit('ice-candidate', { candidate: event.candidate, targetUserId });
-        }
-      };
-
-      pc.ontrack = (event) => {
-        console.log("Received remote stream");
-        setRemoteStream(event.streams[0]);
-        setConnectionStatus('Partner Video Connected');
-      };
-
-      if (localStreamRef.current) {
-          localStreamRef.current.getTracks().forEach(track => pc.addTrack(track, localStreamRef.current));
-      }
-
-      peerConnection.current = pc;
-      return pc;
-  };
+  }, [roomId, userId, createPeerConnection]);
 
   const startCall = async () => {
     try {
         if (localStreamRef.current) return;
-
+        addLog("Requesting Camera...");
         setConnectionStatus('Accessing Camera...');
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         setLocalStream(stream);
-        setConnectionStatus('Ready to Call');
-
-        console.log("Starting local stream...");
+        addLog("Camera Active");
+        setConnectionStatus('Ready');
     } catch (err) {
-        console.error("Error accessing media devices:", err);
-        setConnectionStatus('Camera Error: ' + err.message);
+        addLog(`Camera Error: ${err.message}`);
+        setConnectionStatus('Camera Error');
     }
   };
+
+  // ... inside return JSX, before closing div ...
+  /* Debug Overlay */
+  {/* 
+  <div className="absolute top-20 left-4 bg-black/50 text-white p-2 rounded text-[10px] font-mono pointer-events-none z-50">
+      {logs.map((log, i) => <div key={i}>{log}</div>)}
+  </div> 
+  */}
+  <div className="fixed bottom-20 left-4 bg-black/70 text-lime-400 p-2 rounded text-[10px] font-mono max-w-[200px] z-50 pointer-events-none">
+      <div>Room: {roomId}</div>
+      <div>User: {userId}</div>
+      {logs.map((log, i) => <div key={i}>&gt; {log}</div>)}
+  </div>
   
   // Helper to actually initiate the P2P handshake
   const initiateOneToOneCall = async (targetUserId) => {
@@ -391,6 +410,17 @@ const VideoCall = ({ roomId, userId }) => {
         <div className="text-center mt-2 px-4 py-1 bg-gray-100 rounded-full text-xs text-gray-500 font-mono">
             Status: {connectionStatus}
         </div>
+      </div>
+      {/* Debug Overlay */}
+      <div className="fixed bottom-4 left-4 right-4 bg-black/80 text-lime-400 p-2 rounded-lg text-[10px] font-mono z-50 pointer-events-none opacity-50 hover:opacity-100 transition-opacity">
+          <div className="flex justify-between border-b border-lime-500/30 mb-1 pb-1">
+              <span>R: {roomId}</span>
+              <span>U: {userId?.slice(-4)}</span>
+              <span>S: {connectionStatus}</span>
+          </div>
+          <div className="flex flex-col gap-0.5">
+              {logs.map((log, i) => <div key={i}>&gt; {log}</div>)}
+          </div>
       </div>
     </div>
   );
