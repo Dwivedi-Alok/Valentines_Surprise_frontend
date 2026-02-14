@@ -293,21 +293,6 @@ const VideoCall = ({ roomId, userId }) => {
     }
   };
 
-  // ... inside return JSX, before closing div ...
-  /* Debug Overlay */
-  {/* 
-  <div className="absolute top-20 left-4 bg-black/50 text-white p-2 rounded text-[10px] font-mono pointer-events-none z-50">
-      {logs.map((log, i) => <div key={i}>{log}</div>)}
-  </div> 
-  */}
-   {/*
-   <div className="fixed bottom-20 left-4 bg-black/70 text-lime-400 p-2 rounded text-[10px] font-mono max-w-[200px] z-50 pointer-events-none">
-       <div>Room: {roomId}</div>
-       <div>User: {userId}</div>
-       {logs.map((log, i) => <div key={i}>&gt; {log}</div>)}
-   </div>
-   */}
-  
   const sendPing = () => {
       if (socketRef.current) {
           addLog("Sending Ping...");
@@ -359,14 +344,15 @@ const VideoCall = ({ roomId, userId }) => {
   const activeFilterData = filters[activeFilter];
 
   return (
-    <div className={`flex flex-col items-center gap-6 ${isCallActive ? 'p-0 bg-black min-h-screen justify-center' : 'bg-cream/50 p-6 rounded-3xl shadow-sm'} w-full transition-all duration-500`}>
-      /* Video Grid - Adaptive Layout */
-      <div className={`relative w-full max-w-6xl transition-all duration-500 ${isCallActive ? 'h-[80vh] md:h-auto' : 'h-auto'}`}>
+    <div className={`flex flex-col items-center ${isCallActive ? 'fixed inset-0 bg-black z-40' : 'bg-cream/50 p-4 md:p-6 rounded-3xl shadow-sm gap-4'} w-full transition-all duration-500`}>
+      
+      {/* Video Area */}
+      <div className={`relative w-full max-w-6xl transition-all duration-500 ${isCallActive ? 'flex-1 h-full' : 'h-auto'}`}>
         
-        {/* Remote Video (Full screen on mobile when active) */}
-        <div className={`relative transition-all duration-500 ${isCallActive ? 'absolute inset-0 z-0 md:relative md:inset-auto' : 'w-full'} ${!isCallActive && 'hidden md:block'}`}>
+        {/* Remote Video — fills screen on mobile during call */}
+        <div className={`relative transition-all duration-500 ${isCallActive ? 'w-full h-full' : 'w-full'} ${!isCallActive && !remoteStream && 'block'}`}>
              {remoteStream ? (
-                <div className="relative bg-black rounded-3xl overflow-hidden shadow-2xl w-full h-full md:aspect-video border-4 border-rose-200">
+                <div className={`relative bg-black overflow-hidden shadow-2xl w-full ${isCallActive ? 'h-full rounded-none' : 'rounded-3xl aspect-video border-4 border-rose-200'}`}>
                     <video
                       ref={(video) => {
                         if (video && remoteStream && video.srcObject !== remoteStream) {
@@ -388,10 +374,10 @@ const VideoCall = ({ roomId, userId }) => {
                       style={{ filter: activeFilterData.filter }}
                       className="w-full h-full object-cover"
                     />
-                     <div className="absolute bottom-20 md:bottom-4 left-4 flex items-center gap-2 bg-rose-500/80 backdrop-blur-md text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-lg z-10 transition-all">
-                        <span className="relative flex h-3 w-3">
+                     <div className={`absolute ${isCallActive ? 'bottom-28 md:bottom-4' : 'bottom-4'} left-4 flex items-center gap-2 bg-rose-500/80 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs md:text-sm font-medium shadow-lg z-10`}>
+                        <span className="relative flex h-2 w-2">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-3 w-3 bg-green-400"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400"></span>
                         </span>
                         <span>My Love ❤️</span>
                     </div>
@@ -404,13 +390,13 @@ const VideoCall = ({ roomId, userId }) => {
              )}
         </div>
 
-        {/* Local Video (Floating PiP on mobile when active, or side-by-side) */}
+        {/* Local Video — floating PiP during call */}
         <div className={`transition-all duration-500 ${
             isCallActive 
-            ? 'absolute top-4 right-4 w-32 md:w-full md:static md:col-span-1 z-20 shadow-xl rounded-2xl overflow-hidden border-2 border-white' 
-            : 'w-full md:w-1/2 mx-auto'
-        } ${!isCallActive && remoteStream && 'hidden'}`}>
-            <div className={`relative bg-black rounded-3xl overflow-hidden shadow-2xl aspect-video border-4 border-white ${!isCameraOn ? 'bg-gray-800' : ''}`}>
+            ? 'absolute top-4 right-4 w-28 md:w-40 z-20 shadow-2xl rounded-2xl overflow-hidden border-2 border-white/80' 
+            : `w-full md:w-1/2 mx-auto mt-4 ${remoteStream ? 'hidden' : ''}`
+        }`}>
+            <div className={`relative bg-black overflow-hidden shadow-2xl aspect-video ${isCallActive ? 'rounded-2xl' : 'rounded-3xl border-4 border-white'} ${!isCameraOn ? 'bg-gray-800' : ''}`}>
                 <video
                   ref={(video) => {
                     if (video && localStream && video.srcObject !== localStream) {
@@ -429,40 +415,46 @@ const VideoCall = ({ roomId, userId }) => {
                 />
                 {!isCameraOn && (
                   <div className="absolute inset-0 flex items-center justify-center text-white/50">
-                    <span className="text-2xl">📷 Off</span>
+                    <span className={`${isCallActive ? 'text-sm' : 'text-2xl'}`}>📷 Off</span>
                   </div>
                 )}
                 
-                {/* Only show 'You' tag if not in PiP mode or if on desktop */}
-                <div className={`absolute bottom-4 left-4 flex gap-2 ${isCallActive ? 'hidden md:flex' : 'flex'}`}>
-                    <div className="bg-white/20 backdrop-blur-md text-white px-4 py-1 rounded-full text-sm font-medium border border-white/30">
+                {/* 'You' tag — hidden in PiP mode on mobile */}
+                {!isCallActive && (
+                  <div className="absolute bottom-3 left-3">
+                    <div className="bg-white/20 backdrop-blur-md text-white px-3 py-0.5 rounded-full text-xs font-medium border border-white/30">
                         You
                     </div>
-                </div>
+                  </div>
+                )}
             </div>
         </div>
       </div>
 
-      {/* Controls Bar */}
-      <div className="flex flex-col items-center gap-4 bg-white p-4 rounded-2xl shadow-lg border border-rose-100 max-w-2xl w-full">
+      {/* Controls — overlaid at bottom during active call */}
+      <div className={`flex flex-col items-center gap-3 w-full max-w-2xl transition-all duration-500 ${
+        isCallActive 
+          ? 'absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-xl p-4 pb-6 z-30 rounded-t-3xl border-t border-white/10 max-w-full' 
+          : 'bg-white p-4 rounded-2xl shadow-lg border border-rose-100'
+      }`}>
         
-        {/* Filter Selector - Stories Style */}
-        <div className="w-full overflow-x-auto pb-4 scrollbar-hide">
-            <div className="flex justify-center gap-4 min-w-max px-4">
+        {/* Filter Selector — hidden on mobile during active call */}
+        <div className={`w-full overflow-x-auto pb-2 scrollbar-hide ${isCallActive ? 'hidden md:block' : ''}`}>
+            <div className="flex justify-center gap-3 min-w-max px-2">
                 {Object.entries(filters).map(([key, filter]) => (
                     <button
                         key={key}
                         onClick={() => setActiveFilter(key)}
                         className={`
-                            relative flex flex-col items-center justify-center w-16 h-16 rounded-2xl transition-all duration-300 transform
+                            relative flex flex-col items-center justify-center w-14 h-14 md:w-16 md:h-16 rounded-2xl transition-all duration-300 transform
                             ${activeFilter === key 
-                                ? 'bg-gradient-to-br from-rose-400 to-pink-500 text-white scale-110 shadow-lg ring-2 ring-rose-200 ring-offset-2' 
-                                : 'bg-gray-50 text-gray-500 hover:bg-white hover:shadow-md'
+                                ? `bg-gradient-to-br from-rose-400 to-pink-500 text-white scale-110 shadow-lg ring-2 ring-rose-200 ring-offset-2 ${isCallActive ? 'ring-offset-black/60' : ''}` 
+                                : `${isCallActive ? 'bg-white/10 text-white/70' : 'bg-gray-50 text-gray-500 hover:bg-white hover:shadow-md'}`
                             }
                         `}
                     >
-                        <span className="text-2xl mb-1 filter drop-shadow-sm">{filter.icon || '✨'}</span>
-                        <span className="text-[10px] font-bold uppercase tracking-wider">{filter.name}</span>
+                        <span className="text-xl md:text-2xl mb-0.5 filter drop-shadow-sm">{filter.icon || '✨'}</span>
+                        <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-wider">{filter.name}</span>
                         {activeFilter === key && (
                             <div className="absolute -bottom-1 w-1 h-1 bg-rose-500 rounded-full"></div>
                         )}
@@ -471,10 +463,10 @@ const VideoCall = ({ roomId, userId }) => {
             </div>
         </div>
 
-        <div className="h-px w-full bg-gray-100"></div>
+        {!isCallActive && <div className="h-px w-full bg-gray-100"></div>}
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap justify-center gap-4">
+        <div className="flex justify-center items-center gap-3 md:gap-4">
             {!isCallActive && !localStream ? (
                 <button 
                     onClick={startCall} 
@@ -484,77 +476,48 @@ const VideoCall = ({ roomId, userId }) => {
                 </button>
             ) : (
              <>
-                 {/* Mic Toggle */}
                  <button 
                     onClick={toggleMic}
-                    className={`p-4 rounded-full transition-all shadow-md transform hover:scale-105 active:scale-95 ${!isMicOn ? 'bg-rose-500 text-white hover:bg-rose-600' : 'bg-gray-100 text-gray-700 hover:bg-rose-50'}`}
-                    title={isMicOn ? "Mute Microphone" : "Unmute Microphone"}
+                    className={`p-3 md:p-4 rounded-full transition-all shadow-md active:scale-95 ${!isMicOn ? 'bg-rose-500 text-white' : isCallActive ? 'bg-white/20 text-white backdrop-blur-sm' : 'bg-gray-100 text-gray-700'}`}
+                    title={isMicOn ? "Mute" : "Unmute"}
                  >
-                     {isMicOn ? (
-                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
-                     ) : (
-                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /><line x1="1" y1="1" x2="23" y2="23" stroke="white" strokeWidth="2" /></svg>
-                     )}
+                     <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />{!isMicOn && <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" strokeWidth="2" />}</svg>
                  </button>
 
-                 {/* Camera Toggle */}
                  <button 
                     onClick={toggleCamera}
-                    className={`p-4 rounded-full transition-all shadow-md transform hover:scale-105 active:scale-95 ${!isCameraOn ? 'bg-rose-500 text-white hover:bg-rose-600' : 'bg-gray-100 text-gray-700 hover:bg-rose-50'}`}
-                    title={isCameraOn ? "Turn Off Camera" : "Turn On Camera"}
+                    className={`p-3 md:p-4 rounded-full transition-all shadow-md active:scale-95 ${!isCameraOn ? 'bg-rose-500 text-white' : isCallActive ? 'bg-white/20 text-white backdrop-blur-sm' : 'bg-gray-100 text-gray-700'}`}
+                    title={isCameraOn ? "Camera Off" : "Camera On"}
                  >
-                     {isCameraOn ? (
-                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                     ) : (
-                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /><line x1="1" y1="1" x2="23" y2="23" stroke="white" strokeWidth="2" /></svg>
-                     )}
+                     <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />{!isCameraOn && <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" strokeWidth="2" />}</svg>
                  </button>
 
-                 {/* Speaker Toggle (Remote Audio) */}
                  <button 
                     onClick={() => setIsSpeakerOn(!isSpeakerOn)}
-                    className={`p-4 rounded-full transition-all shadow-md transform hover:scale-105 active:scale-95 ${!isSpeakerOn ? 'bg-rose-500 text-white hover:bg-rose-600' : 'bg-gray-100 text-gray-700 hover:bg-rose-50'}`}
+                    className={`p-3 md:p-4 rounded-full transition-all shadow-md active:scale-95 ${!isSpeakerOn ? 'bg-rose-500 text-white' : isCallActive ? 'bg-white/20 text-white backdrop-blur-sm' : 'bg-gray-100 text-gray-700'}`}
                     title={isSpeakerOn ? "Mute Speaker" : "Unmute Speaker"}
                  >
-                     {isSpeakerOn ? (
-                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
-                     ) : (
-                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /><line x1="1" y1="1" x2="23" y2="23" stroke="white" strokeWidth="2" /></svg>
-                     )}
+                     <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isSpeakerOn ? "M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" : "M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"} />{!isSpeakerOn && <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" strokeWidth="2" />}</svg>
                  </button>
 
-                 {/* End Call / Stop Camera */}
                  <button 
                     onClick={endCall} 
-                    className="flex items-center gap-2 px-6 py-3 bg-red-500 text-white rounded-full hover:bg-red-600 transition shadow-lg hover:shadow-xl ml-2 font-medium active:scale-95 transform duration-150"
+                    className="flex items-center gap-2 px-5 md:px-6 py-3 bg-red-500 text-white rounded-full hover:bg-red-600 transition shadow-lg font-medium active:scale-95"
                 >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6.616l2.062-2.062a2 2 0 012.828 0l2 2z" /></svg>
-                    <span>{isCallActive ? "End Call" : "Stop Camera"}</span>
+                    <span className="text-sm md:text-base">{isCallActive ? "End" : "Stop"}</span>
                 </button>
              </>
             )}
         </div>
         {!isCallActive && !localStream && <p className="text-gray-400 text-xs">Access to camera & microphone required</p>}
-        {/* Connection Status Indicator */}
-        <div className="text-center mt-2 px-4 py-1 bg-gray-100 rounded-full text-xs text-gray-500 font-mono">
-            Status: {connectionStatus}
-        </div>
-      </div>
-      {/* Debug Overlay
-      <div className="fixed bottom-4 left-4 right-4 bg-black/80 text-lime-400 p-2 rounded-lg text-[10px] font-mono z-50 pointer-events-none opacity-50 hover:opacity-100 transition-opacity">
-          <div className="flex justify-between border-b border-lime-500/30 mb-1 pb-1">
-              <span>R: {roomId}</span>
-              <span>U: {userId?.slice(-4)}</span>
-              <span>S: {connectionStatus}</span>
+        {/* Status — compact during call */}
+        {!isCallActive && (
+          <div className="text-center mt-1 px-4 py-1 bg-gray-100 rounded-full text-xs text-gray-500 font-mono">
+              Status: {connectionStatus}
           </div>
-          <div className="flex flex-col gap-0.5">
-              {logs.map((log, i) => <div key={i}>&gt; {log}</div>)}
-          </div>
-          <button onClick={sendPing} className="mt-2 bg-blue-500/50 px-2 py-1 rounded text-white text-[10px] pointer-events-auto">
-              Test Ping
-          </button>
+        )}
       </div>
-      */}
     </div>
   );
 };
