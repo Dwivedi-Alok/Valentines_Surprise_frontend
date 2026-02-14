@@ -300,11 +300,13 @@ const VideoCall = ({ roomId, userId }) => {
       {logs.map((log, i) => <div key={i}>{log}</div>)}
   </div> 
   */}
-  <div className="fixed bottom-20 left-4 bg-black/70 text-lime-400 p-2 rounded text-[10px] font-mono max-w-[200px] z-50 pointer-events-none">
-      <div>Room: {roomId}</div>
-      <div>User: {userId}</div>
-      {logs.map((log, i) => <div key={i}>&gt; {log}</div>)}
-  </div>
+   {/*
+   <div className="fixed bottom-20 left-4 bg-black/70 text-lime-400 p-2 rounded text-[10px] font-mono max-w-[200px] z-50 pointer-events-none">
+       <div>Room: {roomId}</div>
+       <div>User: {userId}</div>
+       {logs.map((log, i) => <div key={i}>&gt; {log}</div>)}
+   </div>
+   */}
   
   const sendPing = () => {
       if (socketRef.current) {
@@ -538,7 +540,7 @@ const VideoCall = ({ roomId, userId }) => {
             Status: {connectionStatus}
         </div>
       </div>
-      {/* Debug Overlay */}
+      {/* Debug Overlay
       <div className="fixed bottom-4 left-4 right-4 bg-black/80 text-lime-400 p-2 rounded-lg text-[10px] font-mono z-50 pointer-events-none opacity-50 hover:opacity-100 transition-opacity">
           <div className="flex justify-between border-b border-lime-500/30 mb-1 pb-1">
               <span>R: {roomId}</span>
@@ -552,6 +554,7 @@ const VideoCall = ({ roomId, userId }) => {
               Test Ping
           </button>
       </div>
+      */}
     </div>
   );
 };
