@@ -83,7 +83,7 @@ const LoginPage = () => {
             <form onSubmit={handleEmailSubmit} className="space-y-5">
               <Input
                 label="Email"
-                type="email"
+                type="text"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 error={error}

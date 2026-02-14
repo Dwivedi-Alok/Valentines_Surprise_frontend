@@ -11,6 +11,7 @@ import UrlsPage from './pages/UrlsPage';
 import ProfilePage from './pages/ProfilePage';
 import MediaPage from './pages/MediaPage';
 import GamesPage from './pages/GamesPage';
+import VideoCallPage from './pages/VideoCallPage';
 
 function App() {
   return (
@@ -67,6 +68,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <GamesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/video-call"
+            element={
+              <ProtectedRoute>
+                <VideoCallPage />
               </ProtectedRoute>
             }
           />

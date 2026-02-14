@@ -10,10 +10,14 @@ const TicTacToe = ({ couple }) => {
   const [winner, setWinner] = useState(null);
   const [status, setStatus] = useState('Waiting for opponent...');
   
+  if (!couple || !couple.user1 || !couple.user2) {
+    return <div className="p-4 text-center">Loading game...</div>;
+  }
+
   // Determine role: user1 is X, user2 is O
   // Ensure we handle populated objects or ID strings safely
-  const user1Id = couple.user1._id || couple.user1;
-  const user2Id = couple.user2._id || couple.user2;
+  const user1Id = couple.user1?._id || couple.user1;
+  const user2Id = couple.user2?._id || couple.user2;
   
   const myRole = user._id === user1Id ? 'X' : 'O';
   const isMyTurn = (isXNext && myRole === 'X') || (!isXNext && myRole === 'O');

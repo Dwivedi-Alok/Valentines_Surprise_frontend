@@ -31,10 +31,12 @@ const LocationTracker = ({ couple }) => {
   const mapRef = useRef(null);
 
   // Identify partner
-  if (!couple || !couple.user1 || !couple.user2) return <div className="p-4 text-center">Loading location...</div>;
+  if (!couple || !couple.user1 || !couple.user2) {
+    return <div className="p-4 text-center">Loading location...</div>;
+  }
 
-  const user1Id = couple.user1._id || couple.user1;
-  const user2Id = couple.user2._id || couple.user2;
+  const user1Id = couple.user1?._id || couple.user1;
+  const user2Id = couple.user2?._id || couple.user2;
   const partnerId = user._id === user1Id ? user2Id : user1Id;
   
   // We need the full partner object for location, so we might need to rely on what's passed or the socket data

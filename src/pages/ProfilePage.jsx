@@ -32,8 +32,11 @@ const ProfilePage = () => {
   const [newFavorite, setNewFavorite] = useState('');
   const [newPartnerFavorite, setNewPartnerFavorite] = useState('');
 
+  const [requests, setRequests] = useState([]);
+
   useEffect(() => {
     fetchCouple();
+    fetchRequests();
     if (user) {
       let favs = user.favorites || [];
       // Handle legacy string format
@@ -64,6 +67,17 @@ const ProfilePage = () => {
       }
     }
   }, [couple]);
+
+  const fetchRequests = async () => {
+      try {
+          const data = await coupleService.getRequests();
+          if (Array.isArray(data)) {
+              setRequests(data);
+          }
+      } catch (err) {
+          console.error("Failed to fetch requests", err);
+      }
+  };
 
   const handleAddFavorite = () => {
     if (!newFavorite.trim()) return;
@@ -111,7 +125,10 @@ const ProfilePage = () => {
       const data = await coupleService.getCouple();
       setCouple(data.couple);
     } catch (err) {
-      setError('Failed to load couple info');
+      console.error("Error fetching couple:", err);
+      // If 404/null is legitimate (no couple), maybe don't error? 
+      // But typically API returns couple: null if none found, so error means network/server error
+      setError(err.message || 'Failed to load couple info');
     } finally {
       setLoading(false);
     }
@@ -171,12 +188,27 @@ const ProfilePage = () => {
   const getPartnerInfo = () => {
     if (!couple) return null;
     
+    // Check if I am the sender or receiver
+    let isSender = false;
+    // user1 is always the sender in our schema wrapper logic usually, but let's check IDs
+    // user1 in couple object might be populated or ID
+    const user1Id = couple.user1?._id || couple.user1;
+    if (user1Id && user1Id.toString() === user._id) {
+        isSender = true;
+    }
+
     if (couple.status === 'pending') {
-      return {
-        name: `${couple.invite_first_name} ${couple.invite_last_name || ''}`.trim(),
-        email: couple.invite_email,
-        isPending: true,
-      };
+      if (isSender) {
+        return {
+            name: `${couple.invite_first_name} ${couple.invite_last_name || ''}`.trim(),
+            email: couple.invite_email,
+            isPending: true,
+        };
+      } else {
+          // I am the receiver (user2). 
+          // Treat incoming requests separately (in the list), not as the "Couple" yet.
+          return null;
+      }
     }
     
     // Find the partner (the other user)
@@ -359,7 +391,7 @@ const ProfilePage = () => {
                 <div className="space-y-6">
                   <div className="flex items-center gap-4">
                     <div className="w-16 h-16 rounded-full bg-rose flex items-center justify-center text-white font-semibold text-2xl shadow-md">
-                      {partner.name.charAt(0).toUpperCase()}
+                      {partner.name?.charAt(0).toUpperCase()}
                     </div>
                     <div>
                       <p className="font-semibold text-dark text-lg flex items-center gap-2">
@@ -377,7 +409,7 @@ const ProfilePage = () => {
                   {partner.isPending ? (
                     <div className="space-y-3">
                       <p className="text-sm text-text-light bg-blush rounded-lg p-3">
-                        💌 An invitation has been sent! Once they sign up, you'll be connected.
+                        💌 An invitation has been sent! Once they accept, you'll be connected.
                       </p>
                       <Button 
                         variant="ghost" 
@@ -528,12 +560,52 @@ const ProfilePage = () => {
                 </form>
               ) : (
                 <div className="text-center py-6">
-                  <p className="text-text-light mb-6 leading-relaxed">
-                    Add your special someone to share tasks, links, and memories together. Plus, unlock the ability to see their favorite things! 💝
-                  </p>
-                  <Button onClick={() => setShowInviteForm(true)} className="w-full">
-                    + Invite Partner
-                  </Button>
+                  {requests.length > 0 ? (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold text-rose-600 mb-3">Incoming Requests 💌</h3>
+                      <div className="space-y-3">
+                        {requests.map(req => (
+                          <div key={req._id} className="bg-white p-3 rounded-xl border border-rose-200 shadow-sm flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center font-bold">
+                                    {req.user1?.first_name?.charAt(0).toUpperCase()}
+                                </div>
+                                <div className="text-left">
+                                    <p className="font-semibold text-sm text-dark">{req.user1?.first_name}</p>
+                                    <p className="text-xs text-text-muted">wants to connect!</p>
+                                </div>
+                            </div>
+                            <Button 
+                                size="sm" 
+                                className="bg-rose-500 hover:bg-rose-600 text-white"
+                                onClick={async () => {
+                                    try {
+                                        setSubmitting(true);
+                                        await coupleService.acceptRequest(req._id);
+                                        window.location.reload();
+                                    } catch(err) {
+                                        setError(err.message);
+                                        setSubmitting(false);
+                                    }
+                                }}
+                                loading={submitting}
+                            >
+                                Accept
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                        <p className="text-text-light mb-6 leading-relaxed">
+                            Add your special someone to share tasks, links, and memories together. Plus, unlock the ability to see their favorite things! 💝
+                        </p>
+                        <Button onClick={() => setShowInviteForm(true)} className="w-full">
+                            + Invite Partner
+                        </Button>
+                    </>
+                  )}
                 </div>
               )}
             </Card.Body>

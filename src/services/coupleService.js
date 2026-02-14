@@ -18,6 +18,18 @@ export const coupleService = {
         const response = await api.delete('/couple');
         return response.data;
     },
+
+    // Get pending requests
+    async getRequests() {
+        const response = await api.get('/couple/requests');
+        return response.data;
+    },
+
+    // Accept request
+    async acceptRequest(requestId) {
+        const response = await api.post(`/couple/accept/${requestId}`);
+        return response.data;
+    },
 };
 
 export default coupleService;
