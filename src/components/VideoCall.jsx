@@ -13,11 +13,11 @@ const VideoCall = ({ roomId, userId }) => {
 
   // Filters
   const filters = {
-    normal: { name: 'Normal', filter: 'none' },
-    love: { name: 'Love', filter: 'contrast(1.1) saturate(1.3) hue-rotate(-10deg)' },
-    vintage: { name: 'Vintage', filter: 'sepia(0.5) contrast(1.2)' },
-    dreamy: { name: 'Dreamy', filter: 'brightness(1.1) contrast(0.9) saturate(1.2) blur(0.5px)' },
-    bw: { name: 'B&W', filter: 'grayscale(1)' },
+    normal: { name: 'Normal', filter: 'none', icon: '😊' },
+    love: { name: 'Love', filter: 'contrast(1.1) saturate(1.3) hue-rotate(-10deg)', icon: '😍' },
+    vintage: { name: 'Vintage', filter: 'sepia(0.5) contrast(1.2)', icon: '🎞️' },
+    dreamy: { name: 'Dreamy', filter: 'brightness(1.1) contrast(0.9) saturate(1.2) blur(0.5px)', icon: '☁️' },
+    bw: { name: 'B&W', filter: 'grayscale(1)', icon: '🎬' },
   };
 
   const [activeFilter, setActiveFilter] = useState('normal');
@@ -191,12 +191,50 @@ const VideoCall = ({ roomId, userId }) => {
   const activeFilterData = filters[activeFilter];
 
   return (
-    <div className="flex flex-col items-center gap-6 bg-cream/50 p-6 rounded-3xl shadow-sm w-full">
-      {/* Video Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-6xl">
-        {/* Local Video */}
-        <div className="relative group">
-            <div className={`relative bg-black rounded-3xl overflow-hidden shadow-2xl aspect-video border-4 border-white transform transition hover:scale-[1.02] duration-300 ${!isCameraOn ? 'bg-gray-800' : ''}`}>
+    <div className={`flex flex-col items-center gap-6 ${isCallActive ? 'p-0 bg-black min-h-screen justify-center' : 'bg-cream/50 p-6 rounded-3xl shadow-sm'} w-full transition-all duration-500`}>
+      /* Video Grid - Adaptive Layout */
+      <div className={`relative w-full max-w-6xl transition-all duration-500 ${isCallActive ? 'h-[80vh] md:h-auto' : 'h-auto'}`}>
+        
+        {/* Remote Video (Full screen on mobile when active) */}
+        <div className={`relative transition-all duration-500 ${isCallActive ? 'absolute inset-0 z-0 md:relative md:inset-auto' : 'w-full'} ${!isCallActive && 'hidden md:block'}`}>
+             {remoteStream ? (
+                <div className="relative bg-black rounded-3xl overflow-hidden shadow-2xl w-full h-full md:aspect-video border-4 border-rose-200">
+                    <video
+                      ref={(video) => {
+                        if (video && remoteStream) {
+                          video.srcObject = remoteStream;
+                          video.play().catch(e => console.error("Error playing remote video", e));
+                        }
+                      }}
+                      autoPlay
+                      playsInline
+                      muted={!isSpeakerOn}
+                      style={{ filter: activeFilterData.style }}
+                      className="w-full h-full object-cover"
+                    />
+                     <div className="absolute bottom-20 md:bottom-4 left-4 flex items-center gap-2 bg-rose-500/80 backdrop-blur-md text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-lg z-10 transition-all">
+                        <span className="relative flex h-3 w-3">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-green-400"></span>
+                        </span>
+                        <span>My Love ❤️</span>
+                    </div>
+                </div>
+             ) : (
+                 <div className="flex flex-col items-center justify-center bg-rose-50 rounded-3xl border-4 border-dashed border-rose-200 aspect-video text-rose-300 animate-pulse w-full">
+                     <div className="text-6xl mb-2">🔭</div>
+                     <p className="font-medium">Waiting for partner...</p>
+                 </div>
+             )}
+        </div>
+
+        {/* Local Video (Floating PiP on mobile when active, or side-by-side) */}
+        <div className={`transition-all duration-500 ${
+            isCallActive 
+            ? 'absolute top-4 right-4 w-32 md:w-full md:static md:col-span-1 z-20 shadow-xl rounded-2xl overflow-hidden border-2 border-white' 
+            : 'w-full md:w-1/2 mx-auto'
+        } ${!isCallActive && remoteStream && 'hidden'}`}>
+            <div className={`relative bg-black rounded-3xl overflow-hidden shadow-2xl aspect-video border-4 border-white ${!isCameraOn ? 'bg-gray-800' : ''}`}>
                 <video
                   ref={(video) => {
                     if (video && localStream) {
@@ -211,90 +249,50 @@ const VideoCall = ({ roomId, userId }) => {
                     filter: activeFilterData.style,
                     display: isCameraOn ? 'block' : 'none'
                   }}
-                  className="w-full h-full object-cover transform scale-x-[-1] transition-all duration-500" // Mirror effect
+                  className="w-full h-full object-cover transform scale-x-[-1]"
                 />
                 {!isCameraOn && (
                   <div className="absolute inset-0 flex items-center justify-center text-white/50">
-                    <div className="flex flex-col items-center">
-                      <span className="text-4xl mb-2">📷</span>
-                      <span>Camera Off</span>
-                    </div>
+                    <span className="text-2xl">📷 Off</span>
                   </div>
                 )}
                 
-                <div className="absolute bottom-4 left-4 flex gap-2">
+                {/* Only show 'You' tag if not in PiP mode or if on desktop */}
+                <div className={`absolute bottom-4 left-4 flex gap-2 ${isCallActive ? 'hidden md:flex' : 'flex'}`}>
                     <div className="bg-white/20 backdrop-blur-md text-white px-4 py-1 rounded-full text-sm font-medium border border-white/30">
-                        You {activeFilter !== 'normal' && `(${activeFilterData.label})`}
+                        You
                     </div>
-                </div>
-
-                {/* Status Icons Overlay */}
-                <div className="absolute top-4 right-4 flex gap-2">
-                   {!isMicOn && (
-                      <div className="bg-red-500/80 backdrop-blur-sm p-2 rounded-full text-white shadow-lg">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /><line x1="1" y1="1" x2="23" y2="23" stroke="white" strokeWidth="2" /></svg>
-                      </div>
-                   )}
                 </div>
             </div>
-        </div>
-
-        {/* Remote Video */}
-        <div className="relative">
-             {remoteStream ? (
-                <div className="relative bg-black rounded-3xl overflow-hidden shadow-2xl aspect-video border-4 border-rose-200 transform transition hover:scale-[1.02] duration-300">
-                    <video
-                      ref={(video) => {
-                        if (video && remoteStream) {
-                          video.srcObject = remoteStream;
-                          video.play().catch(e => console.error("Error playing remote video", e));
-                        }
-                      }}
-                      autoPlay
-                      playsInline
-                      muted={!isSpeakerOn} // Toggle speaker affects remote video valid prop
-                      style={{ filter: activeFilterData.style }}
-                      className="w-full h-full object-cover transition-all duration-500"
-                    />
-                     <div className="absolute bottom-4 left-4 bg-rose-500/80 backdrop-blur-md text-white px-4 py-1 rounded-full text-sm font-medium shadow-lg">
-                        My Love ❤️
-                    </div>
-                    {!isSpeakerOn && (
-                       <div className="absolute top-4 right-4 bg-gray-500/80 backdrop-blur-sm p-2 rounded-full text-white shadow-lg">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /><line x1="1" y1="1" x2="23" y2="23" stroke="white" strokeWidth="2" /></svg>
-                       </div>
-                    )}
-                </div>
-             ) : (
-                 <div className="flex flex-col items-center justify-center bg-rose-50 rounded-3xl border-4 border-dashed border-rose-200 aspect-video text-rose-300 animate-pulse">
-                     <div className="text-6xl mb-2">🔭</div>
-                     <p className="font-medium">Waiting for partner...</p>
-                 </div>
-             )}
         </div>
       </div>
 
       {/* Controls Bar */}
       <div className="flex flex-col items-center gap-4 bg-white p-4 rounded-2xl shadow-lg border border-rose-100 max-w-2xl w-full">
         
-        {/* Filter Selector */}
-        <div className="flex gap-2 overflow-x-auto w-full justify-center pb-2">
-            {Object.entries(filters).map(([key, filter]) => (
-                <button
-                    key={key}
-                    onClick={() => setActiveFilter(key)}
-                    className={`
-                        flex flex-col items-center gap-1 min-w-[70px] p-2 rounded-xl transition-all
-                        ${activeFilter === key 
-                            ? 'bg-rose-100 text-rose-600 ring-2 ring-rose-500 ring-offset-1' 
-                            : 'hover:bg-gray-50 text-gray-500'
-                        }
-                    `}
-                >
-                    <span className="text-2xl">{filter.icon}</span>
-                    <span className="text-xs font-medium">{filter.label}</span>
-                </button>
-            ))}
+        {/* Filter Selector - Stories Style */}
+        <div className="w-full overflow-x-auto pb-4 scrollbar-hide">
+            <div className="flex justify-center gap-4 min-w-max px-4">
+                {Object.entries(filters).map(([key, filter]) => (
+                    <button
+                        key={key}
+                        onClick={() => setActiveFilter(key)}
+                        className={`
+                            relative flex flex-col items-center justify-center w-16 h-16 rounded-2xl transition-all duration-300 transform
+                            ${activeFilter === key 
+                                ? 'bg-gradient-to-br from-rose-400 to-pink-500 text-white scale-110 shadow-lg ring-2 ring-rose-200 ring-offset-2' 
+                                : 'bg-gray-50 text-gray-500 hover:bg-white hover:shadow-md'
+                            }
+                        `}
+                    >
+                        <span className="text-2xl mb-1 filter drop-shadow-sm">{filter.icon || '✨'}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider">{filter.name}</span>
+                        {activeFilter === key && (
+                            <div className="absolute -bottom-1 w-1 h-1 bg-rose-500 rounded-full"></div>
+                        )}
+                    </button>
+                ))}
+            </div>
         </div>
 
         <div className="h-px w-full bg-gray-100"></div>
