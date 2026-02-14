@@ -32,10 +32,16 @@ const VideoCall = ({ roomId, userId }) => {
         socketService.connect();
     }
 
-    if (!socket) return; // Wait for connection
+    if (!socket) return; 
 
-    // Join the room
-    socket.emit('join-room', { roomId, userId });
+    // Prevent multiple joins
+    if (socket.connected) {
+         socket.emit('join-room', { roomId, userId });
+    } else {
+        socket.on('connect', () => {
+            socket.emit('join-room', { roomId, userId });
+        });
+    }
 
     // Handle incoming offer
     socket.on('offer', async ({ offer, senderId }) => {
@@ -74,9 +80,11 @@ const VideoCall = ({ roomId, userId }) => {
         initiateOneToOneCall(userId);
     });
 
-    socket.on('user-disconnected', (userId) => {
-        console.log('User disconnected:', userId);
-        endCall();
+    socket.on('user-disconnected', (disconnectedUserId) => {
+        console.log('User disconnected:', disconnectedUserId);
+        if (disconnectedUserId !== userId) { // Only end call if the OTHER user disconnects
+             endCall();
+        }
     });
 
     return () => {
@@ -89,41 +97,15 @@ const VideoCall = ({ roomId, userId }) => {
     };
   }, [roomId, userId, socket]);
 
-  const createPeerConnection = (targetUserId) => {
-    const pc = new RTCPeerConnection({
-        iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' }, // Use public STUN server
-        ]
-    });
-
-    pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        socket.emit('ice-candidate', { candidate: event.candidate, targetUserId });
-      }
-    };
-
-    pc.ontrack = (event) => {
-      console.log("Received remote track");
-      setRemoteStream(event.streams[0]);
-    };
-
-    if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach((track) => {
-            pc.addTrack(track, localStreamRef.current);
-        });
-    }
-
-    peerConnection.current = pc;
-    return pc;
-  };
+  // ... createPeerConnection ...
 
   const startCall = async () => {
     try {
+        if (localStreamRef.current) return; // Stream already exists
+
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         setLocalStream(stream);
 
-      
-        
         console.log("Starting local stream...");
     } catch (err) {
         console.error("Error accessing media devices:", err);
