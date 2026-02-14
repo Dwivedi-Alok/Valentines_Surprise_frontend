@@ -139,6 +139,11 @@ const VideoCall = ({ roomId, userId }) => {
         }
     });
 
+    socket.on('debug_ping', (senderId) => {
+        addLog(`PING received from ${senderId}`);
+        console.log("PING Received");
+    });
+
     return () => {
       socket.off('connect', onConnect);
       socket.off('connect_error', onConnectError);
@@ -185,7 +190,7 @@ const VideoCall = ({ roomId, userId }) => {
       
       if (!localStreamRef.current) {
           try {
-            addLog("Getting local stream for call...");
+            addLog("Getting local stream...");
             const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             setLocalStream(stream);
           } catch (e) {
@@ -196,16 +201,39 @@ const VideoCall = ({ roomId, userId }) => {
       }
       
       try {
+          addLog("Calling createPeerConnection...");
           const pc = createPeerConnection(targetUserId);
+          if (!pc) {
+              addLog("Failed to create PeerConnection");
+              return;
+          }
+          
           addLog("Creating Offer...");
           const offer = await pc.createOffer();
+          addLog("Offer Created. Setting Local Description...");
           await pc.setLocalDescription(offer);
           
-          addLog("Sending Offer...");
-          socketRef.current.emit('offer', { offer, targetUserId });
+          addLog(`Sending Offer to ${targetUserId}...`);
+          if (socketRef.current) {
+               socketRef.current.emit('offer', { offer, targetUserId });
+               addLog("Offer Sent!");
+               console.log("[VideoCall] Offer Emitted");
+          } else {
+               addLog("Socket Ref is null! Cannot send offer.");
+          }
       } catch (e) {
           console.error("Error creating offer", e);
           addLog(`Offer Error: ${e.message}`);
+      }
+  };
+
+  const sendPing = () => {
+      if (socketRef.current) {
+          addLog("Sending Ping...");
+          console.log("[VideoCall] Sending Ping");
+          socketRef.current.emit('debug_ping', userId); // Sending my ID so they know who pinged
+      } else {
+          addLog("Socket not connected");
       }
   };
 
@@ -296,7 +324,7 @@ const VideoCall = ({ roomId, userId }) => {
             <div className={`relative bg-black rounded-3xl overflow-hidden shadow-2xl aspect-video border-4 border-white ${!isCameraOn ? 'bg-gray-800' : ''}`}>
                 <video
                   ref={(video) => {
-                    if (video && localStream) {
+                    if (video && localStream && video.srcObject !== localStream) {
                       video.srcObject = localStream;
                       video.play().catch(e => console.error("Error playing local video", e));
                     }
@@ -433,6 +461,9 @@ const VideoCall = ({ roomId, userId }) => {
           <div className="flex flex-col gap-0.5">
               {logs.map((log, i) => <div key={i}>&gt; {log}</div>)}
           </div>
+          <button onClick={sendPing} className="mt-2 bg-blue-500/50 px-2 py-1 rounded text-white text-[10px] pointer-events-auto">
+              Test Ping
+          </button>
       </div>
     </div>
   );
