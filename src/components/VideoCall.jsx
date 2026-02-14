@@ -51,8 +51,15 @@ const VideoCall = ({ roomId, userId }) => {
       };
 
       pc.ontrack = (event) => {
-        addLog("Track received");
-        setRemoteStream(event.streams[0]);
+        const stream = event.streams[0];
+        const track = event.track;
+        addLog(`Track Rx: ${track.kind} (${track.enabled ? 'enabled' : 'disabled'})`);
+        console.log("Track Received:", track);
+        
+        track.onunmute = () => addLog(`Track ${track.kind} unmuted`);
+        track.onmute = () => addLog(`Track ${track.kind} muted`);
+
+        setRemoteStream(stream);
         setConnectionStatus('Video Connected');
       };
       
@@ -93,24 +100,56 @@ const VideoCall = ({ roomId, userId }) => {
 
     // Handle incoming offer
     socket.on('offer', async ({ offer, senderId }) => {
-      addLog(`Received offer from ${senderId}`);
-      setConnectionStatus('Receiving Call...');
-      const pc = createPeerConnection(senderId);
-      await pc.setRemoteDescription(new RTCSessionDescription(offer));
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      socket.emit('answer', { answer, targetUserId: senderId });
-      setIsCallActive(true);
-      setConnectionStatus('Connected');
+      try {
+          addLog(`Received offer from ${senderId.slice(-4)}`);
+          setConnectionStatus('Receiving Call...');
+          
+          const pc = createPeerConnection(senderId);
+          if (!pc) {
+              addLog("Failed to create PC for specific offer");
+              return;
+          }
+
+          addLog("Setting Remote Description...");
+          await pc.setRemoteDescription(new RTCSessionDescription(offer));
+          
+          addLog("Creating Answer...");
+          const answer = await pc.createAnswer();
+          
+          addLog("Setting Local Description...");
+          await pc.setLocalDescription(answer);
+          
+          addLog("Sending Answer...");
+          socket.emit('answer', { answer, targetUserId: senderId });
+          
+          setIsCallActive(true);
+          setConnectionStatus('Connected');
+      } catch (err) {
+          console.error("Error handling offer:", err);
+          addLog(`Offer Handle Err: ${err.message}`);
+      }
     });
 
     // Handle incoming answer
     socket.on('answer', async ({ answer }) => {
-      addLog("Received answer");
-      if (peerConnection.current) {
-          await peerConnection.current.setRemoteDescription(new RTCSessionDescription(answer));
-          setIsCallActive(true);
-          setConnectionStatus('Connected');
+      try {
+          addLog("Received answer");
+          if (peerConnection.current) {
+              const signalingState = peerConnection.current.signalingState;
+              if (signalingState === 'stable') {
+                  addLog("Ignored Answer (State is Stable)");
+                  return;
+              }
+              await peerConnection.current.setRemoteDescription(new RTCSessionDescription(answer));
+              setIsCallActive(true);
+              setConnectionStatus('Connected');
+              addLog("Remote Desc Set (Answer)");
+          } else {
+              addLog("No PC found for answer!");
+          }
+      } catch (err) {
+          console.error("Error handling answer:", err);
+          addLog(`Answer Handle Err: ${err.message}`);
       }
     });
 
@@ -288,14 +327,22 @@ const VideoCall = ({ roomId, userId }) => {
                 <div className="relative bg-black rounded-3xl overflow-hidden shadow-2xl w-full h-full md:aspect-video border-4 border-rose-200">
                     <video
                       ref={(video) => {
-                        if (video && remoteStream) {
+                        if (video && remoteStream && video.srcObject !== remoteStream) {
                           video.srcObject = remoteStream;
-                          video.play().catch(e => console.error("Error playing remote video", e));
+                          video.play().catch(e => {
+                              if (e.name !== 'AbortError') console.error("Error playing remote video", e);
+                          });
                         }
                       }}
                       autoPlay
                       playsInline
                       muted={!isSpeakerOn}
+                      onLoadedMetadata={(e) => {
+                          addLog(`Remote Video Loaded: ${e.target.videoWidth}x${e.target.videoHeight}`);
+                          e.target.play().catch(err => addLog(`Play Err: ${err.message}`));
+                      }}
+                      onCanPlay={() => addLog("Remote Video Can Play")}
+                      onError={(e) => addLog(`Video Error: ${e.target.error.message}`)}
                       style={{ filter: activeFilterData.style }}
                       className="w-full h-full object-cover"
                     />
