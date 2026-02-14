@@ -34,6 +34,16 @@ const VideoCall = ({ roomId, userId }) => {
       setLogs(prev => [...prev.slice(-4), msg]); // Keep last 5 logs
   };
 
+  // Media constraints with noise suppression
+  const mediaConstraints = {
+    video: true,
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+    },
+  };
+
   // Use addLog in other functions too
   const createPeerConnection = React.useCallback((targetUserId) => {
       addLog(`Creating PC for ${targetUserId}`);
@@ -50,7 +60,23 @@ const VideoCall = ({ roomId, userId }) => {
               { urls: 'stun:stun.l.google.com:19302' },
               { urls: 'stun:stun1.l.google.com:19302' },
               { urls: 'stun:stun2.l.google.com:19302' },
-              { urls: 'stun:stun3.l.google.com:19302' }
+              { urls: 'stun:stun3.l.google.com:19302' },
+              // Free TURN servers for production NAT traversal
+              {
+                urls: 'turn:openrelay.metered.ca:80',
+                username: 'openrelayproject',
+                credential: 'openrelayproject',
+              },
+              {
+                urls: 'turn:openrelay.metered.ca:443',
+                username: 'openrelayproject',
+                credential: 'openrelayproject',
+              },
+              {
+                urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+                username: 'openrelayproject',
+                credential: 'openrelayproject',
+              },
           ]
       });
 
@@ -139,10 +165,10 @@ const VideoCall = ({ roomId, userId }) => {
           if (!localStreamRef.current) {
               try {
                   addLog("Auto-starting camera...");
-                  const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                  const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
                   setLocalStream(stream);
               } catch (e) {
-                  addLog("Camera Auto-start failed");
+                  addLog("Camera Auto-start failed, continuing anyway");
                   console.error(e);
               }
           }
@@ -215,11 +241,12 @@ const VideoCall = ({ roomId, userId }) => {
         if (!localStreamRef.current) {
             try {
                 addLog('Auto-starting camera for outgoing call...');
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
                 setLocalStream(stream);
             } catch (e) {
-                addLog(`Camera Error: ${e.message}`);
-                return;
+                addLog(`Camera auto-start failed: ${e.message}, proceeding anyway`);
+                console.error(e);
+                // Don't return — still try to create the connection
             }
         }
         
@@ -283,7 +310,7 @@ const VideoCall = ({ roomId, userId }) => {
         if (localStreamRef.current) return;
         addLog("Requesting Camera...");
         setConnectionStatus('Accessing Camera...');
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
         setLocalStream(stream);
         addLog("Camera Active");
         setConnectionStatus('Ready');

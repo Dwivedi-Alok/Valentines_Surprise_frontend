@@ -103,7 +103,7 @@ const VideoCallPage = () => {
                 </div>
              </div>
              
-             <div className="bg-slate-900 rounded-[2rem] overflow-hidden shadow-2xl border-4 border-white">
+             <div>
                 <VideoCall roomId={roomId} userId={user?._id || user?.id} />
              </div>
           </div>
