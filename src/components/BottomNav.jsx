@@ -14,26 +14,31 @@ const BottomNav = () => {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-t border-rose-light pb-safe md:hidden">
-      <nav className="flex items-center justify-around px-2 h-16">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-lg border-t border-rose-100 pb-safe md:hidden shadow-lg shadow-rose-500/10 transition-all duration-300">
+      <nav className="flex items-center justify-around px-2 h-16 w-full max-w-md mx-auto">
         {navItems.map((item) => {
            const isActive = location.pathname === item.path;
            return (
             <Link
                 key={item.path}
                 to={item.path}
+                onClick={() => {
+                  if (navigator.vibrate) navigator.vibrate(50);
+                }}
                 className={`
                 flex flex-col items-center justify-center w-full h-full gap-1
-                transition-all duration-200 ease-out
-                ${isActive ? 'text-deep' : 'text-text-light hover:text-dark'}
+                transition-all duration-300 ease-out active:scale-95
+                ${isActive ? 'text-rose-600' : 'text-slate-400 hover:text-slate-600'}
                 `}
             >
-                <div className={`p-1.5 rounded-xl transition-all duration-200 ${isActive ? 'bg-blush' : 'bg-transparent'}`}>
-                    <svg className="w-5 h-5" fill={isActive ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+                <div className={`p-1.5 rounded-2xl transition-all duration-300 ${isActive ? 'bg-rose-50 translate-y-[-2px] shadow-sm shadow-rose-100' : 'bg-transparent'}`}>
+                    <svg className={`w-6 h-6 transition-transform duration-300 ${isActive ? 'scale-110' : 'scale-100'}`} fill={isActive ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={isActive ? 2.5 : 2} d={item.icon} />
                     </svg>
                 </div>
-                <span className="text-[10px] font-medium">{item.label}</span>
+                <span className={`text-[10px] font-medium transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-80'}`}>
+                  {item.label}
+                </span>
             </Link>
            );
         })}

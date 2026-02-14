@@ -48,12 +48,17 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     try {
       const result = await authService.verifySignupOtp({ email, otp, first_name, last_name });
+      console.log('Signup Verify Result:', result); // Debug log
       setUser(result.user);
       if (result.token) {
+        console.log('Storing token in localStorage:', result.token); // Debug log
         localStorage.setItem('token', result.token);
+      } else {
+        console.warn('No token found in signup response');
       }
       return result;
     } catch (err) {
+      console.error('Signup Verify Error:', err);
       setError(err.message);
       throw err;
     }
@@ -74,12 +79,17 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     try {
       const result = await authService.verifyLoginOtp({ email, otp });
+      console.log('Login Verify Result:', result); // Debug log
       setUser(result.user);
       if (result.token) {
+        console.log('Storing token in localStorage:', result.token); // Debug log
         localStorage.setItem('token', result.token);
+      } else {
+        console.warn('No token found in login response');
       }
       return result;
     } catch (err) {
+      console.error('Login Verify Error:', err);
       setError(err.message);
       throw err;
     }

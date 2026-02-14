@@ -1,4 +1,4 @@
-import Link from 'react-router-dom'; // This import is actually unused if we remove Link from here, but BottomNav uses it.
+
 // Wait, Layout uses Link for Logo.
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
