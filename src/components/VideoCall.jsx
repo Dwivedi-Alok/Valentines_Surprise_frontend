@@ -104,6 +104,18 @@ const VideoCall = ({ roomId, userId }) => {
           addLog(`Received offer from ${senderId.slice(-4)}`);
           setConnectionStatus('Receiving Call...');
           
+          // Auto-start camera if not active
+          if (!localStreamRef.current) {
+              try {
+                  addLog("Auto-starting camera...");
+                  const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                  setLocalStream(stream);
+              } catch (e) {
+                  addLog("Camera Auto-start failed");
+                  console.error(e);
+              }
+          }
+
           const pc = createPeerConnection(senderId);
           if (!pc) {
               addLog("Failed to create PC for specific offer");
