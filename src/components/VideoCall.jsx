@@ -37,24 +37,47 @@ const VideoCall = ({ roomId, userId }) => {
   // Use addLog in other functions too
   const createPeerConnection = React.useCallback((targetUserId) => {
       addLog(`Creating PC for ${targetUserId}`);
+      
+      // Close any existing peer connection first
+      if (peerConnection.current) {
+          addLog('Closing existing PC before creating new one');
+          peerConnection.current.close();
+          peerConnection.current = null;
+      }
+      
       const pc = new RTCPeerConnection({
           iceServers: [
               { urls: 'stun:stun.l.google.com:19302' },
-              { urls: 'stun:stun1.l.google.com:19302' }
+              { urls: 'stun:stun1.l.google.com:19302' },
+              { urls: 'stun:stun2.l.google.com:19302' },
+              { urls: 'stun:stun3.l.google.com:19302' }
           ]
       });
 
       pc.onicecandidate = (event) => {
         if (event.candidate && socketRef.current) {
+          addLog(`Sending ICE candidate`);
           socketRef.current.emit('ice-candidate', { candidate: event.candidate, targetUserId });
+        }
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        addLog(`ICE State: ${pc.iceConnectionState}`);
+        if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+            setConnectionStatus('Video Connected');
+        } else if (pc.iceConnectionState === 'failed') {
+            addLog('ICE connection failed - restarting ICE');
+            pc.restartIce();
+        } else if (pc.iceConnectionState === 'disconnected') {
+            setConnectionStatus('Reconnecting...');
         }
       };
 
       pc.ontrack = (event) => {
         const stream = event.streams[0];
         const track = event.track;
-        addLog(`Track Rx: ${track.kind} (${track.enabled ? 'enabled' : 'disabled'})`);
-        console.log("Track Received:", track);
+        addLog(`Track Rx: ${track.kind} (${track.enabled ? 'enabled' : 'disabled'}, readyState: ${track.readyState})`);
+        console.log("Track Received:", track, "Stream:", stream);
         
         track.onunmute = () => addLog(`Track ${track.kind} unmuted`);
         track.onmute = () => addLog(`Track ${track.kind} muted`);
@@ -63,8 +86,16 @@ const VideoCall = ({ roomId, userId }) => {
         setConnectionStatus('Video Connected');
       };
       
-      if (localStreamRef.current) {
-          localStreamRef.current.getTracks().forEach(track => pc.addTrack(track, localStreamRef.current));
+      // Add local tracks to the peer connection
+      const currentStream = localStreamRef.current;
+      if (currentStream) {
+          addLog(`Adding ${currentStream.getTracks().length} local tracks to PC`);
+          currentStream.getTracks().forEach(track => {
+              addLog(`Adding track: ${track.kind} (${track.readyState})`);
+              pc.addTrack(track, currentStream);
+          });
+      } else {
+          addLog('WARNING: No local stream when creating PC!');
       }
 
       peerConnection.current = pc;
@@ -176,10 +207,51 @@ const VideoCall = ({ roomId, userId }) => {
       }
     });
 
-    socket.on('user-connected', (userId) => {
-        addLog(`User connected: ${userId}`);
+    socket.on('user-connected', async (connectedUserId) => {
+        addLog(`User connected: ${connectedUserId}`);
         setConnectionStatus('Partner Joined');
-        initiateOneToOneCall(userId);
+        
+        // Auto-start camera if not active, then initiate the call
+        if (!localStreamRef.current) {
+            try {
+                addLog('Auto-starting camera for outgoing call...');
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                setLocalStream(stream);
+            } catch (e) {
+                addLog(`Camera Error: ${e.message}`);
+                return;
+            }
+        }
+        
+        // Now initiate the P2P handshake
+        try {
+            addLog(`Initiating call to ${connectedUserId}`);
+            setConnectionStatus('Initiating Call...');
+            
+            const pc = createPeerConnection(connectedUserId);
+            if (!pc) {
+                addLog('Failed to create PeerConnection');
+                return;
+            }
+            
+            addLog('Creating Offer...');
+            const offer = await pc.createOffer();
+            addLog('Setting Local Description...');
+            await pc.setLocalDescription(offer);
+            
+            addLog(`Sending Offer to ${connectedUserId}...`);
+            if (socketRef.current) {
+                socketRef.current.emit('offer', { offer, targetUserId: connectedUserId });
+                addLog('Offer Sent!');
+            } else {
+                addLog('Socket Ref is null! Cannot send offer.');
+            }
+            
+            setIsCallActive(true);
+        } catch (e) {
+            console.error('Error initiating call', e);
+            addLog(`Call Init Error: ${e.message}`);
+        }
     });
 
     socket.on('user-disconnected', (disconnectedUserId) => {
@@ -234,50 +306,6 @@ const VideoCall = ({ roomId, userId }) => {
       {logs.map((log, i) => <div key={i}>&gt; {log}</div>)}
   </div>
   
-  // Helper to actually initiate the P2P handshake
-  const initiateOneToOneCall = async (targetUserId) => {
-      addLog(`Initiating Call to ${targetUserId}`);
-      setConnectionStatus('Initiating Call...');
-      
-      if (!localStreamRef.current) {
-          try {
-            addLog("Getting local stream...");
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            setLocalStream(stream);
-          } catch (e) {
-              console.error("Failed to get local stream on auto-answer", e);
-              addLog(`Stream Error: ${e.message}`);
-              return;
-          }
-      }
-      
-      try {
-          addLog("Calling createPeerConnection...");
-          const pc = createPeerConnection(targetUserId);
-          if (!pc) {
-              addLog("Failed to create PeerConnection");
-              return;
-          }
-          
-          addLog("Creating Offer...");
-          const offer = await pc.createOffer();
-          addLog("Offer Created. Setting Local Description...");
-          await pc.setLocalDescription(offer);
-          
-          addLog(`Sending Offer to ${targetUserId}...`);
-          if (socketRef.current) {
-               socketRef.current.emit('offer', { offer, targetUserId });
-               addLog("Offer Sent!");
-               console.log("[VideoCall] Offer Emitted");
-          } else {
-               addLog("Socket Ref is null! Cannot send offer.");
-          }
-      } catch (e) {
-          console.error("Error creating offer", e);
-          addLog(`Offer Error: ${e.message}`);
-      }
-  };
-
   const sendPing = () => {
       if (socketRef.current) {
           addLog("Sending Ping...");
@@ -355,7 +383,7 @@ const VideoCall = ({ roomId, userId }) => {
                       }}
                       onCanPlay={() => addLog("Remote Video Can Play")}
                       onError={(e) => addLog(`Video Error: ${e.target.error.message}`)}
-                      style={{ filter: activeFilterData.style }}
+                      style={{ filter: activeFilterData.filter }}
                       className="w-full h-full object-cover"
                     />
                      <div className="absolute bottom-20 md:bottom-4 left-4 flex items-center gap-2 bg-rose-500/80 backdrop-blur-md text-white px-4 py-1.5 rounded-full text-sm font-medium shadow-lg z-10 transition-all">
@@ -392,7 +420,7 @@ const VideoCall = ({ roomId, userId }) => {
                   playsInline
                   muted
                   style={{ 
-                    filter: activeFilterData.style,
+                    filter: activeFilterData.filter,
                     display: isCameraOn ? 'block' : 'none'
                   }}
                   className="w-full h-full object-cover transform scale-x-[-1]"
