@@ -129,182 +129,212 @@ const VideoCall = ({ roomId, userId }) => {
   }, []);
 
   useEffect(() => {
-    // 1. Initialize Socket
-    let socket = socketService.socket;
-    if (!socket) {
-        socket = socketService.connect();
-    }
-    socketRef.current = socket;
-
-    // 2. Setup Event Listeners
-    const onConnect = () => {
-        addLog(`Socket connected: ${socket.id}`);
-        setConnectionStatus('Connected to Server');
-        socket.emit('join-room', { roomId, userId });
-    };
-
-    const onConnectError = (err) => {
-        addLog(`Socket Error: ${err.message}`);
-        setConnectionStatus('Error: ' + err.message);
-    };
-
-    if (socket.connected) {
-        onConnect();
-    } else {
-        socket.on('connect', onConnect);
-    }
-    socket.on('connect_error', onConnectError);
-
-    // Handle incoming offer
-    socket.on('offer', async ({ offer, senderId }) => {
-      try {
-          addLog(`Received offer from ${senderId.slice(-4)}`);
-          setConnectionStatus('Receiving Call...');
-          
-          // Auto-start camera if not active
-          if (!localStreamRef.current) {
-              try {
-                  addLog("Auto-starting camera...");
-                  const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
-                  setLocalStream(stream);
-              } catch (e) {
-                  addLog("Camera Auto-start failed, continuing anyway");
-                  console.error(e);
-              }
-          }
-
-          const pc = createPeerConnection(senderId);
-          if (!pc) {
-              addLog("Failed to create PC for specific offer");
-              return;
-          }
-
-          addLog("Setting Remote Description...");
-          await pc.setRemoteDescription(new RTCSessionDescription(offer));
-          
-          addLog("Creating Answer...");
-          const answer = await pc.createAnswer();
-          
-          addLog("Setting Local Description...");
-          await pc.setLocalDescription(answer);
-          
-          addLog("Sending Answer...");
-          socket.emit('answer', { answer, targetUserId: senderId });
-          
-          setIsCallActive(true);
-          setConnectionStatus('Connected');
-      } catch (err) {
-          console.error("Error handling offer:", err);
-          addLog(`Offer Handle Err: ${err.message}`);
-      }
-    });
-
-    // Handle incoming answer
-    socket.on('answer', async ({ answer }) => {
-      try {
-          addLog("Received answer");
-          if (peerConnection.current) {
-              const signalingState = peerConnection.current.signalingState;
-              if (signalingState === 'stable') {
-                  addLog("Ignored Answer (State is Stable)");
-                  return;
-              }
-              await peerConnection.current.setRemoteDescription(new RTCSessionDescription(answer));
-              setIsCallActive(true);
-              setConnectionStatus('Connected');
-              addLog("Remote Desc Set (Answer)");
-          } else {
-              addLog("No PC found for answer!");
-          }
-      } catch (err) {
-          console.error("Error handling answer:", err);
-          addLog(`Answer Handle Err: ${err.message}`);
-      }
-    });
-
-    // Handle incoming ICE candidates
-    socket.on('ice-candidate', async ({ candidate }) => {
-      if (peerConnection.current) {
-          try {
-              await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
-          } catch (e) {
-              console.error("Error adding ice candidate", e);
-          }
-      }
-    });
-
-    socket.on('user-connected', async (connectedUserId) => {
-        addLog(`User connected: ${connectedUserId}`);
-        setConnectionStatus('Partner Joined');
-        
-        // Auto-start camera if not active, then initiate the call
+    // Camera-first approach: acquire media BEFORE joining the room.
+    // This is critical for mobile browsers which block getUserMedia
+    // unless it's triggered close to a user gesture (the "Start Call" tap).
+    const init = async () => {
+        // Step 1: Get camera/mic access FIRST (while user gesture is fresh)
         if (!localStreamRef.current) {
             try {
-                addLog('Auto-starting camera for outgoing call...');
+                addLog("Starting camera...");
+                setConnectionStatus('Accessing Camera...');
                 const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
                 setLocalStream(stream);
+                addLog("Camera ready ✓");
             } catch (e) {
-                addLog(`Camera auto-start failed: ${e.message}, proceeding anyway`);
-                console.error(e);
-                // Don't return — still try to create the connection
+                addLog(`Camera init failed: ${e.message}`);
+                console.error('getUserMedia failed:', e);
+                setConnectionStatus('Camera failed - please allow camera access');
             }
         }
-        
-        // Now initiate the P2P handshake
-        try {
-            addLog(`Initiating call to ${connectedUserId}`);
-            setConnectionStatus('Initiating Call...');
-            
-            const pc = createPeerConnection(connectedUserId);
-            if (!pc) {
-                addLog('Failed to create PeerConnection');
-                return;
-            }
-            
-            addLog('Creating Offer...');
-            const offer = await pc.createOffer();
-            addLog('Setting Local Description...');
-            await pc.setLocalDescription(offer);
-            
-            addLog(`Sending Offer to ${connectedUserId}...`);
-            if (socketRef.current) {
-                socketRef.current.emit('offer', { offer, targetUserId: connectedUserId });
-                addLog('Offer Sent!');
-            } else {
-                addLog('Socket Ref is null! Cannot send offer.');
-            }
-            
-            setIsCallActive(true);
-        } catch (e) {
-            console.error('Error initiating call', e);
-            addLog(`Call Init Error: ${e.message}`);
-        }
-    });
 
-    socket.on('user-disconnected', (disconnectedUserId) => {
-        addLog(`User disconnected: ${disconnectedUserId}`);
-        if (disconnectedUserId !== userId) {
-             setConnectionStatus('Partner Disconnected');
-             endCall();
+        // Step 2: Connect socket
+        let socket = socketService.socket;
+        if (!socket) {
+            socket = socketService.connect();
         }
-    });
+        socketRef.current = socket;
 
-    socket.on('debug_ping', (senderId) => {
-        addLog(`PING received from ${senderId}`);
-        console.log("PING Received");
-    });
+        // Step 3: Setup ALL event handlers BEFORE joining room
+        const onConnect = () => {
+            addLog(`Socket connected: ${socket.id}`);
+            setConnectionStatus(localStreamRef.current ? 'Ready — Waiting for Partner' : 'Connected (no camera)');
+            socket.emit('join-room', { roomId, userId });
+        };
+
+        const onConnectError = (err) => {
+            addLog(`Socket Error: ${err.message}`);
+            setConnectionStatus('Error: ' + err.message);
+        };
+
+        socket.on('connect_error', onConnectError);
+
+        // Handle incoming offer
+        socket.on('offer', async ({ offer, senderId }) => {
+          try {
+              addLog(`Received offer from ${senderId.slice(-4)}`);
+              setConnectionStatus('Receiving Call...');
+
+              const pc = createPeerConnection(senderId);
+              if (!pc) {
+                  addLog("Failed to create PC for offer");
+                  return;
+              }
+
+              addLog("Setting Remote Description...");
+              await pc.setRemoteDescription(new RTCSessionDescription(offer));
+              
+              addLog("Creating Answer...");
+              const answer = await pc.createAnswer();
+              
+              addLog("Setting Local Description...");
+              await pc.setLocalDescription(answer);
+              
+              addLog("Sending Answer...");
+              socket.emit('answer', { answer, targetUserId: senderId });
+              
+              setIsCallActive(true);
+              setConnectionStatus('Connected');
+          } catch (err) {
+              console.error("Error handling offer:", err);
+              addLog(`Offer Handle Err: ${err.message}`);
+          }
+        });
+
+        // Handle incoming answer
+        socket.on('answer', async ({ answer }) => {
+          try {
+              addLog("Received answer");
+              if (peerConnection.current) {
+                  const signalingState = peerConnection.current.signalingState;
+                  if (signalingState === 'stable') {
+                      addLog("Ignored Answer (State is Stable)");
+                      return;
+                  }
+                  await peerConnection.current.setRemoteDescription(new RTCSessionDescription(answer));
+                  setIsCallActive(true);
+                  setConnectionStatus('Connected');
+                  addLog("Remote Desc Set (Answer)");
+              } else {
+                  addLog("No PC found for answer!");
+              }
+          } catch (err) {
+              console.error("Error handling answer:", err);
+              addLog(`Answer Handle Err: ${err.message}`);
+          }
+        });
+
+        // Handle incoming ICE candidates
+        socket.on('ice-candidate', async ({ candidate }) => {
+          if (peerConnection.current) {
+              try {
+                  await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
+              } catch (e) {
+                  console.error("Error adding ice candidate", e);
+              }
+          }
+        });
+
+        socket.on('user-connected', async (connectedUserId) => {
+            addLog(`Partner joined: ${connectedUserId}`);
+            setConnectionStatus('Partner Joined — Connecting...');
+            
+            // Camera should already be ready from Step 1 above.
+            // If somehow it's not, log a warning but proceed.
+            if (!localStreamRef.current) {
+                addLog('WARNING: Camera not ready when partner joined!');
+            }
+            
+            // Initiate the P2P handshake
+            try {
+                addLog(`Creating offer for ${connectedUserId}`);
+                
+                const pc = createPeerConnection(connectedUserId);
+                if (!pc) {
+                    addLog('Failed to create PeerConnection');
+                    return;
+                }
+                
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                
+                if (socketRef.current) {
+                    socketRef.current.emit('offer', { offer, targetUserId: connectedUserId });
+                    addLog('Offer Sent!');
+                } else {
+                    addLog('Socket Ref is null!');
+                }
+                
+                setIsCallActive(true);
+            } catch (e) {
+                console.error('Error initiating call', e);
+                addLog(`Call Init Error: ${e.message}`);
+            }
+        });
+
+        socket.on('user-disconnected', (disconnectedUserId) => {
+            addLog(`User disconnected: ${disconnectedUserId}`);
+            if (disconnectedUserId !== userId) {
+                 setConnectionStatus('Partner Disconnected');
+                 if (peerConnection.current) {
+                     peerConnection.current.close();
+                     peerConnection.current = null;
+                 }
+                 if (localStreamRef.current) {
+                     localStreamRef.current.getTracks().forEach(track => track.stop());
+                     setLocalStream(null);
+                 }
+                 setRemoteStream(null);
+                 setIsCallActive(false);
+            }
+        });
+
+        socket.on('call-ended', () => {
+            addLog('Partner ended the call');
+            setConnectionStatus('Call Ended by Partner');
+            if (peerConnection.current) {
+                peerConnection.current.close();
+                peerConnection.current = null;
+            }
+            if (localStreamRef.current) {
+                localStreamRef.current.getTracks().forEach(track => track.stop());
+                setLocalStream(null);
+            }
+            setRemoteStream(null);
+            setIsCallActive(false);
+        });
+
+        socket.on('debug_ping', (senderId) => {
+            addLog(`PING received from ${senderId}`);
+        });
+
+        // Step 4: NOW join the room (camera is ready, handlers are set)
+        if (socket.connected) {
+            onConnect();
+        } else {
+            socket.on('connect', onConnect);
+        }
+    };
+
+    init();
 
     return () => {
-      socket.off('connect', onConnect);
-      socket.off('connect_error', onConnectError);
-      socket.off('offer');
-      socket.off('answer');
-      socket.off('ice-candidate');
-      socket.off('user-connected');
-      socket.off('user-disconnected');
+      const socket = socketRef.current;
+      if (socket) {
+        socket.off('connect');
+        socket.off('connect_error');
+        socket.off('offer');
+        socket.off('answer');
+        socket.off('ice-candidate');
+        socket.off('user-connected');
+        socket.off('user-disconnected');
+        socket.off('call-ended');
+        socket.off('debug_ping');
+      }
     };
   }, [roomId, userId, createPeerConnection]);
 
+  // Manual camera toggle (fallback if auto-start failed)
   const startCall = async () => {
     try {
         if (localStreamRef.current) return;
@@ -343,6 +373,10 @@ const VideoCall = ({ roomId, userId }) => {
       setRemoteStream(null);
       setIsCallActive(false);
       setConnectionStatus('Call Ended');
+      // Notify partner
+      if (socketRef.current) {
+          socketRef.current.emit('call-ended', { roomId });
+      }
   };
 
   // Media Controls
@@ -371,7 +405,7 @@ const VideoCall = ({ roomId, userId }) => {
   const activeFilterData = filters[activeFilter];
 
   return (
-    <div className={`flex flex-col items-center ${isCallActive ? 'fixed inset-0 bg-black z-40' : 'bg-cream/50 p-4 md:p-6 rounded-3xl shadow-sm gap-4'} w-full transition-all duration-500`}>
+    <div className={`flex flex-col items-center ${isCallActive ? 'fixed inset-0 bg-black z-[60]' : 'bg-cream/50 p-4 md:p-6 rounded-3xl shadow-sm gap-4'} w-full transition-all duration-500`}>
       
       {/* Video Area */}
       <div className={`relative w-full max-w-6xl transition-all duration-500 ${isCallActive ? 'flex-1 h-full' : 'h-auto'}`}>
