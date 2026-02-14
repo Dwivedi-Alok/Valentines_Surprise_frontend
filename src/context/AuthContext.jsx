@@ -49,6 +49,9 @@ export const AuthProvider = ({ children }) => {
     try {
       const result = await authService.verifySignupOtp({ email, otp, first_name, last_name });
       setUser(result.user);
+      if (result.token) {
+        localStorage.setItem('token', result.token);
+      }
       return result;
     } catch (err) {
       setError(err.message);
@@ -72,6 +75,9 @@ export const AuthProvider = ({ children }) => {
     try {
       const result = await authService.verifyLoginOtp({ email, otp });
       setUser(result.user);
+      if (result.token) {
+        localStorage.setItem('token', result.token);
+      }
       return result;
     } catch (err) {
       setError(err.message);
@@ -93,6 +99,7 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       await authService.logout();
+      localStorage.removeItem('token');
       setUser(null);
     } catch (err) {
       setError(err.message);

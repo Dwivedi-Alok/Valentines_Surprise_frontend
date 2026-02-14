@@ -1,7 +1,10 @@
+import Link from 'react-router-dom'; // This import is actually unused if we remove Link from here, but BottomNav uses it.
+// Wait, Layout uses Link for Logo.
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui';
 import RequestsModal from './RequestsModal';
+import BottomNav from './BottomNav';
 
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();
@@ -28,7 +31,7 @@ const Layout = ({ children }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen bg-cream pb-20 md:pb-0">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-rose-light">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -42,8 +45,8 @@ const Layout = ({ children }) => {
             <span className="font-semibold text-dark hidden sm:inline">Couple's Paradise</span>
           </Link>
 
-          {/* Nav */}
-          <nav className="flex items-center gap-1">
+          {/* Nav - Hidden on mobile, shown on md+ */}
+          <nav className="hidden md:flex items-center gap-1">
             {navItems.map((item) => (
               <Link
                 key={item.path}
@@ -86,6 +89,9 @@ const Layout = ({ children }) => {
 
       {/* Global Modals */}
       <RequestsModal />
+      
+      {/* Bottom Nav - Mobile Only */}
+      <BottomNav />
     </div>
   );
 };
