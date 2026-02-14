@@ -71,7 +71,7 @@ const VideoCall = ({ roomId, userId }) => {
 
     socket.on('user-connected', (userId) => {
         console.log('User connected:', userId);
-        // Optional: Auto-start call or show "User joined"
+        initiateOneToOneCall(userId);
     });
 
     socket.on('user-disconnected', (userId) => {
