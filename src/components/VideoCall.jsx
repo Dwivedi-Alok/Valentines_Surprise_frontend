@@ -180,25 +180,37 @@ const VideoCall = ({ roomId, userId }) => {
   
   // Helper to actually initiate the P2P handshake
   const initiateOneToOneCall = async (targetUserId) => {
+      addLog(`Initiating Call to ${targetUserId}`);
       setConnectionStatus('Initiating Call...');
+      
       if (!localStreamRef.current) {
           try {
+            addLog("Getting local stream for call...");
             const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             setLocalStream(stream);
           } catch (e) {
               console.error("Failed to get local stream on auto-answer", e);
+              addLog(`Stream Error: ${e.message}`);
               return;
           }
       }
       
-      const pc = createPeerConnection(targetUserId);
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-
-      socketRef.current.emit('offer', { offer, targetUserId });
+      try {
+          const pc = createPeerConnection(targetUserId);
+          addLog("Creating Offer...");
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          
+          addLog("Sending Offer...");
+          socketRef.current.emit('offer', { offer, targetUserId });
+      } catch (e) {
+          console.error("Error creating offer", e);
+          addLog(`Offer Error: ${e.message}`);
+      }
   };
 
   const endCall = () => {
+      addLog("Ending Call");
       if (peerConnection.current) {
           peerConnection.current.close();
           peerConnection.current = null;

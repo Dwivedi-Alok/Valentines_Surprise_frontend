@@ -5,9 +5,29 @@ import { useAuth } from '../context/AuthContext';
 import { Camera, Video, ArrowLeft, Heart } from 'lucide-react'; // Optional: install lucide-react or use SVGs
 
 const VideoCallPage = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [inCall, setInCall] = useState(false);
   const roomId = "couple-room";
+
+  if (loading) {
+      return (
+          <Layout>
+              <div className="flex items-center justify-center min-h-[80vh]">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500"></div>
+              </div>
+          </Layout>
+      );
+  }
+
+  if (!user) {
+      return (
+          <Layout>
+              <div className="flex flex-col items-center justify-center min-h-[80vh] gap-4">
+                  <p className="text-xl text-rose-500 font-semibold">Please log in to use Video Call</p>
+              </div>
+          </Layout>
+      );
+  }
 
   return (
     <Layout>
@@ -84,7 +104,7 @@ const VideoCallPage = () => {
              </div>
              
              <div className="bg-slate-900 rounded-[2rem] overflow-hidden shadow-2xl border-4 border-white">
-                <VideoCall roomId={roomId} userId={user._id} />
+                <VideoCall roomId={roomId} userId={user?._id || user?.id} />
              </div>
           </div>
         )}
