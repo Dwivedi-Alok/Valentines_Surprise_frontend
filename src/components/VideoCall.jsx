@@ -178,6 +178,8 @@ const VideoCall = ({ roomId, userId }) => {
                       video.play().catch(e => console.error("Error playing local video", e));
                     }
                   }}
+                  autoPlay
+                  playsInline
                   muted
                   style={{ 
                     filter: activeFilterData.style,
@@ -222,6 +224,8 @@ const VideoCall = ({ roomId, userId }) => {
                           video.play().catch(e => console.error("Error playing remote video", e));
                         }
                       }}
+                      autoPlay
+                      playsInline
                       muted={!isSpeakerOn} // Toggle speaker affects remote video valid prop
                       style={{ filter: activeFilterData.style }}
                       className="w-full h-full object-cover transition-all duration-500"
@@ -271,10 +275,10 @@ const VideoCall = ({ roomId, userId }) => {
 
         {/* Action Buttons */}
         <div className="flex flex-wrap justify-center gap-4">
-            {!isCallActive ? (
+            {!isCallActive && !localStream ? (
                 <button 
                     onClick={startCall} 
-                    className="flex items-center gap-2 px-8 py-3 bg-linear-to-r from-rose-500 to-pink-500 text-white rounded-full hover:from-rose-600 hover:to-pink-600 transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                    className="flex items-center gap-2 px-8 py-3 bg-linear-to-r from-rose-500 to-pink-500 text-white rounded-full hover:from-rose-600 hover:to-pink-600 transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-semibold text-lg"
                 >
                     <span>📸</span> Turn On Camera
                 </button>
@@ -283,7 +287,7 @@ const VideoCall = ({ roomId, userId }) => {
                  {/* Mic Toggle */}
                  <button 
                     onClick={toggleMic}
-                    className={`p-4 rounded-full transition shadow-md ${!isMicOn ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                    className={`p-4 rounded-full transition-all shadow-md transform hover:scale-105 active:scale-95 ${!isMicOn ? 'bg-rose-500 text-white hover:bg-rose-600' : 'bg-gray-100 text-gray-700 hover:bg-rose-50'}`}
                     title={isMicOn ? "Mute Microphone" : "Unmute Microphone"}
                  >
                      {isMicOn ? (
@@ -296,7 +300,7 @@ const VideoCall = ({ roomId, userId }) => {
                  {/* Camera Toggle */}
                  <button 
                     onClick={toggleCamera}
-                    className={`p-4 rounded-full transition shadow-md ${!isCameraOn ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                    className={`p-4 rounded-full transition-all shadow-md transform hover:scale-105 active:scale-95 ${!isCameraOn ? 'bg-rose-500 text-white hover:bg-rose-600' : 'bg-gray-100 text-gray-700 hover:bg-rose-50'}`}
                     title={isCameraOn ? "Turn Off Camera" : "Turn On Camera"}
                  >
                      {isCameraOn ? (
@@ -309,7 +313,7 @@ const VideoCall = ({ roomId, userId }) => {
                  {/* Speaker Toggle (Remote Audio) */}
                  <button 
                     onClick={() => setIsSpeakerOn(!isSpeakerOn)}
-                    className={`p-4 rounded-full transition shadow-md ${!isSpeakerOn ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                    className={`p-4 rounded-full transition-all shadow-md transform hover:scale-105 active:scale-95 ${!isSpeakerOn ? 'bg-rose-500 text-white hover:bg-rose-600' : 'bg-gray-100 text-gray-700 hover:bg-rose-50'}`}
                     title={isSpeakerOn ? "Mute Speaker" : "Unmute Speaker"}
                  >
                      {isSpeakerOn ? (
@@ -319,12 +323,13 @@ const VideoCall = ({ roomId, userId }) => {
                      )}
                  </button>
 
-                 {/* End Call */}
+                 {/* End Call / Stop Camera */}
                  <button 
                     onClick={endCall} 
-                    className="flex items-center gap-2 px-8 py-3 bg-red-500 text-white rounded-full hover:bg-red-600 transition shadow-lg hover:shadow-xl ml-4"
+                    className="flex items-center gap-2 px-6 py-3 bg-red-500 text-white rounded-full hover:bg-red-600 transition shadow-lg hover:shadow-xl ml-2 font-medium active:scale-95 transform duration-150"
                 >
-                    <span>📞</span> End Call
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6.616l2.062-2.062a2 2 0 012.828 0l2 2z" /></svg>
+                    <span>{isCallActive ? "End Call" : "Stop Camera"}</span>
                 </button>
              </>
             )}
