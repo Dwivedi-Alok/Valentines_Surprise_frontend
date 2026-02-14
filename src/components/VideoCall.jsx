@@ -113,7 +113,35 @@ const VideoCall = ({ roomId, userId }) => {
     };
   }, [roomId, userId]);
 
-  // ... createPeerConnection ...
+  const createPeerConnection = (targetUserId) => {
+      console.log("Creating peer connection for", targetUserId);
+      const pc = new RTCPeerConnection({
+          iceServers: [
+              { urls: 'stun:stun.l.google.com:19302' },
+              { urls: 'stun:stun1.l.google.com:19302' },
+              { urls: 'stun:stun2.l.google.com:19302' }
+          ]
+      });
+
+      pc.onicecandidate = (event) => {
+        if (event.candidate && socketRef.current) {
+          socketRef.current.emit('ice-candidate', { candidate: event.candidate, targetUserId });
+        }
+      };
+
+      pc.ontrack = (event) => {
+        console.log("Received remote stream");
+        setRemoteStream(event.streams[0]);
+        setConnectionStatus('Partner Video Connected');
+      };
+
+      if (localStreamRef.current) {
+          localStreamRef.current.getTracks().forEach(track => pc.addTrack(track, localStreamRef.current));
+      }
+
+      peerConnection.current = pc;
+      return pc;
+  };
 
   const startCall = async () => {
     try {
