@@ -1,4 +1,4 @@
-
+import { useState } from 'react';
 // Wait, Layout uses Link for Logo.
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -10,13 +10,16 @@ const Layout = ({ children }) => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const handleLogout = async () => {
     try {
+      setLoggingOut(true);
       await logout();
       navigate('/login');
     } catch (err) {
       console.error('Logout failed:', err);
+      setLoggingOut(false);
     }
   };
 
@@ -81,6 +84,14 @@ const Layout = ({ children }) => {
           </div>
         </div>
       </header>
+
+      {/* Logout Overlay */}
+      {loggingOut && (
+        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm">
+          <div className="animate-spin rounded-full h-10 w-10 border-[3px] border-rose-200 border-t-rose-500" />
+          <p className="mt-4 text-sm font-medium text-rose-500 animate-pulse">Logging out...</p>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-8">
