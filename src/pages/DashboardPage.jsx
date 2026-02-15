@@ -162,287 +162,217 @@ const DashboardPage = () => {
     );
   }
 
-  return (
+return (
     <Layout>
-      {/* QR Code Modal */}
+      {/* Refined Image Lightbox */}
       {selectedQr && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setSelectedQr(null)}>
-          <div className="relative bg-white p-2 rounded-2xl max-w-sm w-full animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/90 backdrop-blur-md transition-all" onClick={() => setSelectedQr(null)}>
+          <div className="relative bg-white p-3 rounded-[2.5rem] max-w-sm w-full shadow-2xl animate-in fade-in zoom-in duration-300" onClick={e => e.stopPropagation()}>
             <button 
               onClick={() => setSelectedQr(null)}
-              className="absolute -top-12 right-0 text-white hover:text-gray-200 p-2"
+              className="absolute -top-14 right-0 text-white/70 hover:text-white transition-colors"
             >
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
-            <div className="bg-white rounded-xl overflow-hidden">
+            <div className="overflow-hidden rounded-[2rem] bg-slate-50">
               <img src={selectedQr} alt="Payment QR" className="w-full h-auto object-contain" />
             </div>
-            <div className="text-center p-4">
-              <p className="text-sm text-text-muted">Scan to pay</p>
+            <div className="text-center py-4">
+              <span className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Payment Authorization</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* Welcome Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+      {/* Header Section */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-12 gap-6">
         <div>
-          <h1 className="text-2xl font-semibold text-dark">
-            Hello, {user?.first_name || 'Love'} 💕
+          <h1 className="text-4xl font-bold tracking-tight text-slate-900">
+            Welcome, {user?.first_name || 'User'}
           </h1>
-          <p className="text-text-light mt-1">Here's your overview for today</p>
+          <p className="text-slate-500 font-medium mt-2">Here is your shared overview for today.</p>
         </div>
         
-        {/* Send Kiss Button */}
         {partner && (
           <Button 
             onClick={handleSendKiss} 
             loading={sendingKiss}
-            className="animate-pulse shadow-lg bg-gradient-to-r from-rose to-pink-500 border-none"
+            className="rounded-2xl px-8 py-6 shadow-xl shadow-rose-100 bg-rose border-none hover:bg-rose-dark transition-all transform hover:-translate-y-1 active:translate-y-0"
           >
-            {sendingKiss ? 'Sending Love...' : 'Send a Kiss 💋'}
+            <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+            <span className="font-bold tracking-wide">Send Love</span>
           </Button>
         )}
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <Card variant="gradient" hover className="text-center">
-          <div className="text-3xl font-bold text-deep mb-1">{stats.todos}</div>
-          <div className="text-sm text-text-light">Total Tasks</div>
-        </Card>
-        
-        <Card variant="gradient" hover className="text-center">
-          <div className="text-3xl font-bold text-accent mb-1">{stats.pending}</div>
-          <div className="text-sm text-text-light">Pending</div>
-        </Card>
-        
-        <Card variant="gradient" hover className="text-center">
-          <div className="text-3xl font-bold text-dusty mb-1">{stats.urls}</div>
-          <div className="text-sm text-text-light">Saved Links</div>
-        </Card>
+      {/* Modern Metrics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        {[
+          { label: 'Total Tasks', value: stats.todos, color: 'text-slate-900', bg: 'bg-white' },
+          { label: 'Pending Action', value: stats.pending, color: 'text-rose', bg: 'bg-rose-50/30' },
+          { label: 'Shared Links', value: stats.urls, color: 'text-slate-900', bg: 'bg-white' }
+        ].map((stat, i) => (
+          <div key={i} className={`p-8 rounded-[2rem] border border-slate-100 shadow-sm ${stat.bg}`}>
+            <div className={`text-4xl font-bold ${stat.color} mb-1 tracking-tighter`}>{stat.value}</div>
+            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">{stat.label}</div>
+          </div>
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Tasks & Partner Favorites (2/3 width) */}
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-8 space-y-8">
           
-          {/* Partner Favorites */}
+          {/* Partner Favorites: Immersive Card */}
           {partner && (
-            <Card variant="gradient" className="bg-gradient-to-br from-rose-light/20 to-blush/30 border-rose-light">
-              <Card.Header>
-                <Card.Title>❤️ {partner.first_name}'s Favorites</Card.Title>
-              </Card.Header>
-              <Card.Body>
-                {partner.favorites && partner.favorites.length > 0 ? (
+            <div className="relative overflow-hidden bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-2xl shadow-slate-200">
+              <div className="absolute top-0 right-0 p-8 opacity-10">
+                <svg className="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              </div>
+              <h2 className="text-xs font-bold uppercase tracking-[0.3em] text-slate-400 mb-6">Partner Preferences</h2>
+              <h3 className="text-2xl font-bold mb-4">{partner.first_name}'s Favorites</h3>
+              <div className="mt-2">
+                {partner.favorites && (Array.isArray(partner.favorites) ? partner.favorites.length > 0 : partner.favorites.trim()) ? (
                   Array.isArray(partner.favorites) ? (
-                    <ul className="space-y-2">
-                      {partner.favorites.map((fav, index) => (
-                        <li key={index} className="flex items-start gap-2 text-dark">
-                          <span className="text-rose mt-1">♥</span>
-                          <span>{fav}</span>
+                    <ul className="space-y-3">
+                      {partner.favorites.map((fav, i) => (
+                        <li key={i} className="flex items-start gap-3">
+                          <span className="text-rose-400 mt-0.5">♥</span>
+                          <span className="text-slate-300 leading-relaxed font-medium">{fav}</span>
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="whitespace-pre-line text-dark leading-relaxed">
-                      {partner.favorites}
-                    </p>
+                    <p className="text-slate-300 leading-relaxed font-medium whitespace-pre-line">{partner.favorites}</p>
                   )
                 ) : (
-                  <p className="text-text-muted italic">They haven't added any favorite things yet.</p>
+                  <p className="text-slate-500 italic font-medium">No preferences shared yet.</p>
                 )}
-              </Card.Body>
-            </Card>
+              </div>
+            </div>
           )}
 
-          {/* Recent Tasks */}
-          <Card>
-            <Card.Header>
-              <div className="flex items-center justify-between">
-                <Card.Title>Recent Tasks</Card.Title>
-                <Link to="/todos">
-                  <Button variant="ghost" size="sm">View All →</Button>
+          {/* Activity Sections */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <section className="bg-white rounded-[2rem] border border-slate-100 p-8 shadow-sm">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900">Recent Tasks</h3>
+                <Link to="/todos" className="p-2 rounded-full hover:bg-slate-50 transition-colors">
+                  <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
                 </Link>
               </div>
-            </Card.Header>
-            <Card.Body>
-              {recentTodos.length > 0 ? (
-                <ul className="space-y-3">
-                  {recentTodos.map((todo) => (
-                    <li key={todo._id} className="flex items-center gap-3 p-3 rounded-[var(--radius-md)] bg-blush/50">
-                      <div className={`w-2 h-2 rounded-full ${todo.completed ? 'bg-success' : 'bg-warning'}`} />
-                      <span className={`flex-1 ${todo.completed ? 'line-through text-text-muted' : 'text-text'}`}>
-                        {todo.title}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-center text-text-muted py-4">No tasks yet</p>
-              )}
-            </Card.Body>
-          </Card>
+              <div className="space-y-4">
+                {recentTodos.map((todo) => (
+                  <div key={todo._id} className="flex items-center gap-4 group">
+                    <div className={`w-2 h-2 rounded-full transition-transform group-hover:scale-150 ${todo.completed ? 'bg-emerald-400' : 'bg-rose'}`} />
+                    <span className={`text-sm font-semibold transition-colors ${todo.completed ? 'text-slate-300 line-through' : 'text-slate-600 group-hover:text-slate-900'}`}>
+                      {todo.title}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
 
-          {/* Recent Links */}
-          <Card>
-            <Card.Header>
-              <div className="flex items-center justify-between">
-                <Card.Title>Recent Links</Card.Title>
-                <Link to="/urls">
-                  <Button variant="ghost" size="sm">View All →</Button>
+            <section className="bg-white rounded-[2rem] border border-slate-100 p-8 shadow-sm">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900">Saved Links</h3>
+                <Link to="/urls" className="p-2 rounded-full hover:bg-slate-50 transition-colors">
+                  <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
                 </Link>
               </div>
-            </Card.Header>
-            <Card.Body>
-              {recentUrls.length > 0 ? (
-                <ul className="space-y-3">
-                  {recentUrls.map((url) => (
-                    <li key={url._id} className="flex items-center gap-3 p-3 rounded-[var(--radius-md)] bg-sky-50 border border-sky-100">
-                      <div className="text-xl">🔗</div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-dark truncate">{url.title}</p>
-                        <a href={url.url} target="_blank" rel="noopener noreferrer" className="text-xs text-accent hover:underline truncate block">
-                          {url.url}
-                        </a>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-center text-text-muted py-4">No links saved yet</p>
-              )}
-            </Card.Body>
-          </Card>
+              <div className="space-y-4">
+                {recentUrls.map((url) => (
+                  <a key={url._id} href={url.url} target="_blank" rel="noreferrer" className="block group">
+                    <p className="text-sm font-bold text-slate-700 group-hover:text-rose transition-colors truncate">{url.title}</p>
+                    <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest mt-1 truncate">{new URL(url.url).hostname}</p>
+                  </a>
+                ))}
+              </div>
+            </section>
+          </div>
         </div>
 
-        {/* Right Column - Wallet/Payments (1/3 width) */}
-        <div className="lg:col-span-1 space-y-6">
-          {/* Wallet Section */}
-          <Card>
-            <Card.Header>
-              <div className="flex justify-between items-center">
-                <Card.Title>💳 Wallet</Card.Title>
-                <Button size="sm" onClick={() => setShowAddPayment(!showAddPayment)}>
-                  {showAddPayment ? 'Cancel' : '+ Add'}
-                </Button>
-              </div>
-            </Card.Header>
-            <Card.Body>
-              {/* Add Payment Form */}
-              {showAddPayment && (
-                <form onSubmit={handleAddPayment} className="mb-6 p-4 bg-gray-50 rounded-xl space-y-3">
-                  <select 
-                    className="w-full p-2 rounded-lg border border-gray-200 text-sm"
-                    value={newPayment.type}
-                    onChange={e => setNewPayment({...newPayment, type: e.target.value})}
-                  >
-                    <option value="link">Payment Link / UPI ID</option>
-                    <option value="qr_image">QR Code Image</option>
-                  </select>
-                  
-                  <Input 
-                    placeholder="Title (e.g. GPay, Bank)" 
-                    value={newPayment.title}
-                    onChange={e => setNewPayment({...newPayment, title: e.target.value})}
-                    required
-                  />
+        {/* Sidebar: Digital Wallet */}
+        <div className="lg:col-span-4">
+          <div className="bg-slate-50 rounded-[2.5rem] p-8 border border-slate-100 sticky top-8">
+            <div className="flex items-center justify-between mb-10">
+              <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-900">Wallet</h2>
+              <button 
+                onClick={() => setShowAddPayment(!showAddPayment)}
+                className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest px-4 py-2 rounded-full transition-all ${showAddPayment ? 'bg-rose text-white shadow-lg shadow-rose-100' : 'bg-white text-slate-400 border border-slate-100 hover:border-rose hover:text-rose'}`}
+              >
+                {showAddPayment ? 'Close' : 'Add Method'}
+              </button>
+            </div>
 
-                  {newPayment.type === 'link' ? (
-                    <Input 
-                      placeholder="URL or UPI ID" 
-                      value={newPayment.value}
-                      onChange={e => setNewPayment({...newPayment, value: e.target.value})}
-                      required
-                    />
-                  ) : (
-                    <input 
-                      type="file" 
-                      accept="image/*"
-                      ref={qrInputRef}
-                      onChange={e => setQrFile(e.target.files[0])}
-                      className="text-sm w-full"
-                      required
-                    />
-                  )}
+            {showAddPayment && (
+              <form onSubmit={handleAddPayment} className="mb-10 space-y-4 animate-in slide-in-from-top-4 duration-300">
+                <select 
+                  className="w-full bg-white border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-rose/20 outline-none appearance-none transition-all"
+                  value={newPayment.type}
+                  onChange={e => setNewPayment({...newPayment, type: e.target.value})}
+                >
+                  <option value="link">Payment Link</option>
+                  <option value="qr_image">QR Code Image</option>
+                </select>
+                <Input 
+                  placeholder="Provider Name" 
+                  className="rounded-2xl border-slate-100 font-bold px-5 py-4"
+                  value={newPayment.title}
+                  onChange={e => setNewPayment({...newPayment, title: e.target.value})}
+                />
+                <Button fullWidth loading={uploadingQr} className="bg-slate-900 border-none py-4 font-bold rounded-2xl shadow-xl shadow-slate-200">Confirm Save</Button>
+              </form>
+            )}
 
-                  <Button type="submit" size="sm" fullWidth loading={uploadingQr}>Save</Button>
-                </form>
-              )}
-
-              {/* My Payments */}
-              <div className="space-y-4">
-                <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wider">My Methods</h4>
-                {payments.myPayments.length > 0 ? (
-                  payments.myPayments.map(p => (
-                    <div key={p._id} className="relative group p-3 bg-white border border-rose-light/30 rounded-xl shadow-sm hover:shadow-md transition-all">
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); handleDeletePayment(p._id); }}
-                        className="absolute top-2 right-2 z-10 text-text-muted hover:text-error opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 rounded-full p-1"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                      </button>
-                      <div className="font-medium text-dark text-sm mb-2">{p.title}</div>
-                      {p.type === 'qr_image' ? (
-                        qrUrls[p._id] ? (
-                          <div 
-                            className="relative cursor-pointer group/qr"
-                            onClick={() => setSelectedQr(qrUrls[p._id])}
-                          >
-                            <img src={qrUrls[p._id]} alt="QR" className="w-full h-48 object-contain bg-gray-50 rounded-lg border border-gray-100" />
-                            <div className="absolute inset-0 bg-black/5 flex items-center justify-center opacity-0 group-hover/qr:opacity-100 transition-opacity rounded-lg">
-                              <span className="bg-white/90 text-xs px-2 py-1 rounded-full shadow-sm text-dark font-medium">Click to expand</span>
-                            </div>
-                          </div>
-                        ) : <div className="h-48 bg-gray-100 animate-pulse rounded-lg" />
-                      ) : (
-                        <div className="text-xs text-text-light break-all bg-gray-50 p-2 rounded select-all cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => navigator.clipboard.writeText(p.value)}>
-                          {p.value} 📋
-                        </div>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-text-muted italic">No payment methods added</p>
-                )}
-              </div>
-
-              {/* Partner's Payments */}
-              {partner && (
-                <div className="mt-6 pt-6 border-t border-gray-100 space-y-4">
-                  <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wider">Send Gift To {partner.first_name}</h4>
-                  {payments.partnersPayments.length > 0 ? (
-                    payments.partnersPayments.map(p => (
-                      <div key={p._id} className="p-3 bg-rose-light/10 border border-rose-light/30 rounded-xl">
-                        <div className="font-medium text-dark text-sm mb-2">{p.title}</div>
-                        {p.type === 'qr_image' ? (
-                          qrUrls[p._id] ? (
-                            <div 
-                              className="relative cursor-pointer group/qr"
-                              onClick={() => setSelectedQr(qrUrls[p._id])}
-                            >
-                              <img src={qrUrls[p._id]} alt="QR" className="w-full h-48 object-contain bg-white rounded-lg border border-rose-light/20" />
-                              <div className="absolute inset-0 bg-black/5 flex items-center justify-center opacity-0 group-hover/qr:opacity-100 transition-opacity rounded-lg">
-                                <span className="bg-white/90 text-xs px-2 py-1 rounded-full shadow-sm text-dark font-medium">Click to expand</span>
-                              </div>
-                            </div>
-                          ) : <div className="h-48 bg-gray-100 animate-pulse rounded-lg" />
-                        ) : (
-                          <div className="text-xs text-text-light break-all bg-white p-2 rounded select-all cursor-pointer hover:bg-rose-50 transition-colors" onClick={() => navigator.clipboard.writeText(p.value)}>
-                            {p.value} 📋
-                          </div>
-                        )}
+            <div className="space-y-8">
+              {/* Internal Wallet Sections */}
+              <div>
+                <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-6">My Accounts</h4>
+                <div className="grid gap-4">
+                  {payments.myPayments.map(p => (
+                    <div key={p._id} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between group">
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-slate-900 mb-1">{p.title}</p>
+                        <p className="text-[10px] font-mono text-slate-400 truncate max-w-[120px]">{p.value || 'Visual QR'}</p>
                       </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-text-muted italic">They haven't added any payment info</p>
-                  )}
+                      <div className="flex gap-2">
+                         {p.type === 'qr_image' && (
+                           <button onClick={() => setSelectedQr(qrUrls[p._id])} className="p-2 rounded-lg bg-slate-50 text-slate-400 hover:text-rose transition-colors">
+                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m0 11v1m8-8h-1m-11 0H4m12 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                           </button>
+                         )}
+                         <button onClick={() => handleDeletePayment(p._id)} className="p-2 rounded-lg bg-slate-50 text-slate-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100">
+                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                         </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {partner && (
+                <div>
+                  <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-rose mb-6">Transfer to {partner.first_name}</h4>
+                  <div className="grid gap-4">
+                    {payments.partnersPayments.map(p => (
+                      <div key={p._id} className="bg-white border-2 border-rose/5 p-5 rounded-2xl shadow-sm flex items-center justify-between">
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-900 mb-1">{p.title}</p>
+                          <p className="text-[10px] font-bold text-rose/40 uppercase tracking-widest">Available Account</p>
+                        </div>
+                        <button 
+                          onClick={() => p.type === 'qr_image' ? setSelectedQr(qrUrls[p._id]) : navigator.clipboard.writeText(p.value)}
+                          className="bg-rose/5 text-rose p-3 rounded-xl hover:bg-rose hover:text-white transition-all"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
-            </Card.Body>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
     </Layout>

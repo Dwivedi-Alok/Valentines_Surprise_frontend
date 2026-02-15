@@ -9,17 +9,21 @@ const TicTacToe = ({ couple }) => {
   const [isXNext, setIsXNext] = useState(true);
   const [winner, setWinner] = useState(null);
   const [status, setStatus] = useState('Waiting for opponent...');
+  const [gameCount, setGameCount] = useState(0); // Tracks resets to swap who starts
   
   if (!couple || !couple.user1 || !couple.user2) {
     return <div className="p-4 text-center">Loading game...</div>;
   }
 
-  // Determine role: user1 is X, user2 is O
-  // Ensure we handle populated objects or ID strings safely
+  // Determine role: swap X/O every game reset
   const user1Id = couple.user1?._id || couple.user1;
   const user2Id = couple.user2?._id || couple.user2;
   
-  const myRole = user._id === user1Id ? 'X' : 'O';
+  // Even games: user1=X, user2=O | Odd games: user1=O, user2=X
+  const rolesSwapped = gameCount % 2 !== 0;
+  const myRole = (user._id === user1Id)
+    ? (rolesSwapped ? 'O' : 'X')
+    : (rolesSwapped ? 'X' : 'O');
   const isMyTurn = (isXNext && myRole === 'X') || (!isXNext && myRole === 'O');
 
   useEffect(() => {
@@ -32,10 +36,11 @@ const TicTacToe = ({ couple }) => {
       setWinner(calculateWinner(data.board));
     });
 
-    socket.on('receive_reset', () => {
+    socket.on('receive_reset', (data) => {
       setBoard(Array(9).fill(null));
       setIsXNext(true);
       setWinner(null);
+      setGameCount(data.gameCount ?? 0);
     });
 
     return () => {
@@ -62,11 +67,13 @@ const TicTacToe = ({ couple }) => {
   };
 
   const resetGame = () => {
-    socketService.resetGame({ room: couple._id });
+    const nextGameCount = gameCount + 1;
+    socketService.resetGame({ room: couple._id, gameCount: nextGameCount });
     // Optimistic update
     setBoard(Array(9).fill(null));
     setIsXNext(true);
     setWinner(null);
+    setGameCount(nextGameCount);
   };
 
   const getStatusMessage = () => {
@@ -79,17 +86,20 @@ const TicTacToe = ({ couple }) => {
     return `🔴 Waiting for ${myRole === 'X' ? 'O' : 'X'}...`;
   };
 
+  const myLabel = myRole === 'X' ? '❌' : '⭕';
+  const partnerLabel = myRole === 'X' ? '⭕' : '❌';
+
   return (
     <div className="flex flex-col items-center w-full">
       <h2 className="text-2xl font-bold mb-2 text-deep">Tic-Tac-Toe</h2>
       
       <div className="flex items-center gap-4 mb-6 bg-white px-4 py-2 rounded-full shadow-sm">
-        <div className={`flex items-center gap-2 ${myRole === 'X' ? 'font-bold text-rose' : 'text-text-muted'}`}>
-          <span className="text-xl">❌</span> You (Player 1)
+        <div className={`flex items-center gap-2 ${isMyTurn ? 'font-bold text-rose' : 'text-text-muted'}`}>
+          <span className="text-xl">{myLabel}</span> You
         </div>
         <div className="h-4 w-px bg-gray-300"></div>
-        <div className={`flex items-center gap-2 ${myRole === 'O' ? 'font-bold text-deep' : 'text-text-muted'}`}>
-            <span className="text-xl">⭕</span> Partner (Player 2)
+        <div className={`flex items-center gap-2 ${!isMyTurn ? 'font-bold text-deep' : 'text-text-muted'}`}>
+            <span className="text-xl">{partnerLabel}</span> Partner
         </div>
       </div>
 
